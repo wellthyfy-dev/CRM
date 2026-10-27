@@ -111,7 +111,7 @@ export interface MailTransport {
   fetchInbox(
     lastUid: number,
     uidValidity: string | null,
-  ): Promise<{ uidValidity: string; messages: InboundRaw[] }>;
+  ): Promise<{ uidValidity: string; messages: InboundRaw[]; resetTo?: number }>;
   testConnection(): Promise<ConnectionTestResult>;
 }
 

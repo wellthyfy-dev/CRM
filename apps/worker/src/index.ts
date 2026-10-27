@@ -1,16 +1,20 @@
 import http from 'node:http';
 import * as Sentry from '@sentry/node';
 import {
+  anthropicProvider,
   createDb,
   createLogger,
   createMailTransport,
   downloadFile,
+  fetchSitePages,
   isPgliteUrl,
   loadEnv,
   readServerEnv,
+  resendNotifier,
   zeroBounceVerifier,
 } from '@wellthyfy/shared/server';
 import { ALL_JOBS } from './jobs';
+import { parseMail } from './lib/parse-mail';
 import { bossPublisher, registerJobs, startBoss, type WorkerState } from './runtime';
 
 loadEnv();
@@ -39,6 +43,10 @@ await registerJobs(
     publisher: bossPublisher(boss),
     mail: createMailTransport(env, logger),
     verifier: zeroBounceVerifier(env.ZEROBOUNCE_API_KEY),
+    ai: anthropicProvider(env.ANTHROPIC_API_KEY),
+    notifier: resendNotifier(env),
+    fetchPages: (website) => fetchSitePages(website),
+    parseMail,
     downloadAttachment: downloadFile,
     now: () => new Date(),
     randomGapSeconds: () => 60 + Math.floor(Math.random() * 121),

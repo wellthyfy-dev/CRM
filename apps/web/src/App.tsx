@@ -13,6 +13,8 @@ import { OrganisationsPage } from '@/pages/organisations/OrganisationsPage';
 import { PipelinePage } from '@/pages/PipelinePage';
 import { PlaceholderPage } from '@/pages/PlaceholderPage';
 import { ProgrammesPage } from '@/pages/ProgrammesPage';
+import { QueuePage } from '@/pages/QueuePage';
+import { RepliesPage } from '@/pages/RepliesPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { TemplatesPage } from '@/pages/TemplatesPage';
 import { UsersPage } from '@/pages/UsersPage';
@@ -43,8 +45,8 @@ export function App() {
           <Route path="approvals" element={<ApprovalsPage />} />
           <Route path="emails" element={<EmailsPage />} />
           <Route path="emails/:id" element={<EmailDetailPage />} />
-          <Route path="queue" element={<PlaceholderPage title="Queue" />} />
-          <Route path="replies" element={<PlaceholderPage title="Replies" />} />
+          <Route path="queue" element={<QueuePage />} />
+          <Route path="replies" element={<RepliesPage />} />
           <Route path="proposals" element={<PlaceholderPage title="Proposals" />} />
           <Route path="templates" element={<TemplatesPage />} />
           <Route path="programmes" element={<ProgrammesPage />} />

@@ -1,6 +1,8 @@
 import PgBoss from 'pg-boss';
+import type { FetchedPage } from '@wellthyfy/shared';
 import {
   QUEUES,
+  type AiProvider,
   type Db,
   type EmailVerifier,
   type JobPublisher,
@@ -8,6 +10,7 @@ import {
   type MailTransport,
   type QueueName,
   type ServerEnv,
+  type StaffNotifier,
 } from '@wellthyfy/shared/server';
 
 export interface WorkerDeps {
@@ -18,11 +21,29 @@ export interface WorkerDeps {
   publisher: JobPublisher;
   mail: MailTransport;
   verifier: EmailVerifier;
+  ai: AiProvider;
+  notifier: StaffNotifier;
+  fetchPages: (website: string) => Promise<FetchedPage[]>;
+  /** Parse a raw RFC 822 message (mailparser in production). */
+  parseMail: (raw: Buffer) => Promise<ParsedMail>;
   downloadAttachment: (path: string) => Promise<Buffer>;
   now: () => Date;
   /** Random gap between sends, in seconds (60–180 in production). */
   randomGapSeconds: () => number;
   state: WorkerState;
+}
+
+export interface ParsedMail {
+  messageId: string | null;
+  inReplyTo: string | null;
+  references: string[];
+  fromAddress: string;
+  to: string[];
+  subject: string;
+  text: string;
+  date: Date | null;
+  headers: Record<string, string>;
+  contentType: string;
 }
 
 export interface WorkerState {

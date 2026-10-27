@@ -21,7 +21,7 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: [
     {
-      command: 'npx tsx src/index.ts',
+      command: 'node --import tsx src/index.ts',
       cwd: '../api',
       url: `${E2E_API_URL}/health`,
       reuseExistingServer: false,

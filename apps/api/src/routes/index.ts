@@ -8,6 +8,7 @@ import { organisationRoutes } from './organisations';
 import { pipelineRoutes } from './pipeline';
 import { programmeRoutes } from './programmes';
 import { researchRoutes } from './research';
+import { sendingRoutes } from './sending';
 import { settingsRoutes } from './settings';
 import { templateRoutes } from './templates';
 import { userRoutes } from './users';
@@ -20,6 +21,7 @@ export function registerApiRoutes(api: Router, deps: RouteDeps): void {
   api.use(researchRoutes(deps));
   api.use(programmeRoutes(deps));
   api.use(templateRoutes(deps));
+  api.use(sendingRoutes(deps));
   api.use(emailRoutes(deps));
   api.use(importRoutes(deps));
   api.use(pipelineRoutes(deps));

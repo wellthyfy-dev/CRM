@@ -109,3 +109,57 @@
 - Settings GET is readable by all roles (no secrets — integration status is booleans only); PATCH is admin-only.
 - e2e login seeds a supabase-js session in localStorage with an HS256 token the API accepts via `SUPABASE_JWT_SECRET`
   (test-only secret); production uses the project's JWKS or real secret.
+
+## Step 2 — Sending, follow-ups, replies, verification, AI, alerts
+
+### What was built
+- **Sending (Titan SMTP)**: admin "Send" (per email, or "Queue all approved") runs the gate at queue stage and sets
+  `queued`. Worker `send-tick` (every minute + kicked after each send) sends **one email at a time** inside the IST send
+  window/days and under hourly/daily caps, with a random 60–180 s gap. `checkSendGate` is re-run immediately before
+  SMTP; timing-only failures wait, any other failure marks the email `failed` with `gate_failure_reason`. The same
+  stored Message-ID is used; on success: `sent_at`, APPEND copy to special-use `\Sent` with `\Seen`, delete the Titan
+  draft by UID, stage → sent (proposal emails → proposal_sent), activity. Errors: rate-limit/network → exponential
+  backoff retry (max 5 attempts) + queue paused 1 hour; rejected recipient → failed + contact `invalid`; auth → queue
+  paused + staff alert. **Queue page**: queued list, sent today/this hour, remaining capacity, next window, pause/resume,
+  remove from queue.
+- **Follow-ups**: daily 08:00 IST job drafts follow-up 1 after `follow_up_1_days` and follow-up 2 after
+  `follow_up_2_days` (only after FU1 was sent) for sent first contacts with no reply/opt-out; status
+  `pending_approval` (never auto-sent); threaded (`In-Reply-To`/`References`, "Re: …"). Max 2. Any reply cancels
+  pending follow-ups.
+- **Reply tracking**: every 5 minutes, read-only INBOX fetch from `imap_last_uid` (UIDVALIDITY-aware; never deletes,
+  moves or flags). Match by In-Reply-To/References → stored Message-ID, then sender → contact email; bounces matched by
+  Message-IDs quoted in the DSN. Unrelated mail is ignored (not stored). Rules first: bounce → `bounced` + contact
+  invalid; STOP/unsubscribe/remove me/not interested → permanent opt-out + suppression; out-of-office → follow-ups
+  shifted by 7 days (not treated as a reply). Otherwise AI classifies interested / not_interested / other with a
+  one-line summary. "Interested" triggers an instant staff alert. **Replies page** with filters, reclassify and
+  "mark handled".
+- **ZeroBounce**: async on contact create/edit; re-checked before approval if older than 90 days; `invalid` blocks the
+  gate; catch-all / risky / unchecked shown as warnings on approval screens. Role-based "do_not_mail" (e.g. placement@)
+  maps to risky, not invalid.
+- **AI research** (`@anthropic-ai/sdk`, `messages.parse` + Zod structured output): fetches the home page + up to 6
+  relevant same-domain pages (about, placement, training, departments, contact, leadership, careers…), strips to text,
+  caps ~80k chars (~20k tokens). Prompt includes the Wellthyfy profile, segment playbook and active programmes.
+  Server drops any candidate contact whose name or email is not verbatim on its cited page (and any evidence quote
+  from an unfetched URL). Saved with model, tokens and `cost_inr` (₹88/$; Haiku 5.5 $0.10/$0.50, Sonnet 5.5 $2/$10 per
+  MTok). Candidates show as "Suggested – not verified" with one-click add (`verified=false`, `ai_suggested=true`).
+  "Use AI draft" in the compose dialog. Monthly AI limit enforced across research and reply classification
+  (`ai_usage` table).
+- **Resend (staff only)**: 09:00 IST digest to `ALERT_EMAIL_TO` (follow-ups due/overdue, approvals waiting, replies
+  needing attention, yesterday's sends) and instant "interested" alerts. Recipients are always `ALERT_EMAIL_TO`.
+
+### How to test
+- `npm test` — 151 tests, including: scheduler window/days/caps (cap = 2), one-at-a-time + gap, gate re-check before
+  SMTP (opt-out after queueing, missing approval), error classification paths, follow-up timing/threading/limit,
+  reply matching (In-Reply-To, sender, DSN), STOP → opt-out, bounce, out-of-office shift, AI verbatim filter, AI cost
+  and monthly limit, crawler helpers.
+- `npm run test:e2e` — 8 Playwright tests still pass.
+- Manual (dry_run): approve an email → Send → watch the worker log "[dry_run] SMTP send replaced by logger" → email
+  shows sent with a "dry run" activity.
+
+### Decisions / defaults (Step 2)
+- A gate failure at send time other than timing marks the email `failed` (an admin can review and re-approve).
+- Follow-up 2 is created only if follow-up 1 was actually sent; follow-up timing counts from the original send date.
+- Out-of-office replies are stored for visibility but do not count as replies (no stage change, no cancellation).
+- AI uses effort `medium` for research and `low` for classification; refusals and schema failures are logged as
+  `ai_research_failed` and fall back to "other" for classification.
+- The worker must run as a single instance (one-at-a-time sending relies on it).

@@ -8,7 +8,8 @@ import { Input, Select, Textarea } from '@/components/ui/input';
 import { Field } from '@/components/ui/label';
 import { useToast } from '@/components/ui/toast';
 import { api } from '@/lib/api';
-import type { ContactJ, EmailJ, OrganisationJ, TemplateJ } from '@/lib/types';
+import type { ContactJ, EmailJ, OrganisationJ, ResearchJ, TemplateJ } from '@/lib/types';
+import type { AiOutput } from './AiResearchPanel';
 
 interface Rendered {
   templateId: string;
@@ -72,6 +73,30 @@ export function ComposeEmailDialog({
     },
   });
 
+  const research = useQuery({
+    queryKey: ['research', organisation.id],
+    queryFn: () => api<ResearchJ[]>(`/api/organisations/${organisation.id}/research`),
+  });
+  const aiDraft = research.data?.find((r) => r.aiGenerated)?.aiOutput as AiOutput | undefined;
+  /** Render the AI draft through the template renderer (signature + opt-out line). */
+  const useAiDraft = useMutation({
+    mutationFn: () =>
+      api<{ subject: string; body: string }>('/api/templates/preview', {
+        body: {
+          subject: aiDraft?.draftSubject ?? '',
+          body: `${aiDraft?.draftBody ?? ''}
+
+{{optOutLine}}`,
+          organisationId: organisation.id,
+          contactId: contact.id,
+        },
+      }),
+    onSuccess: (r) => {
+      setSubject(r.subject);
+      setBody(r.body);
+    },
+  });
+
   const firstContact = templates.data?.filter((t) => t.kind === 'first_contact' && t.active) ?? [];
 
   return (
@@ -97,6 +122,14 @@ export function ComposeEmailDialog({
             ))}
           </Select>
         </Field>
+        {aiDraft?.draftBody && (
+          <div className="flex items-center gap-2 rounded-md bg-sky-50 p-2 text-xs text-sky-900">
+            An AI-drafted email is available from the latest research.
+            <Button size="sm" variant="outline" onClick={() => useAiDraft.mutate()}>
+              Use AI draft
+            </Button>
+          </div>
+        )}
         <Field label="Subject">
           <Input aria-label="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
         </Field>

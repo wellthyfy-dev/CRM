@@ -8,13 +8,36 @@ import {
   profiles,
   readServerEnv,
   RecordingPublisher,
+  type AiProvider,
+  type AiResult,
   type ConnectionTestResult,
   type DbHandle,
   type InboundRaw,
   type MailTransport,
 } from '@wellthyfy/shared/server';
 import { createTestDb } from '@wellthyfy/shared/testing';
+import type { AiReplyClassification, AiResearchOutput, FetchedPage } from '@wellthyfy/shared';
 import type { WorkerDeps } from '../src/runtime';
+import { parseMail } from '../src/lib/parse-mail';
+
+/** Scriptable AI fake: set researchResult / classifyResult to control the next call. */
+export class FakeAi implements AiProvider {
+  configured = true;
+  researchResult: AiResult<AiResearchOutput> | null = null;
+  classifyResult: AiReplyClassification = { classification: 'interested', summary: 'Wants a proposal' };
+  classifyCalls = 0;
+  async research(): Promise<AiResult<AiResearchOutput>> {
+    if (!this.researchResult) throw new Error('no fake research result set');
+    return this.researchResult;
+  }
+  async classifyReply(model: string): Promise<AiResult<AiReplyClassification>> {
+    this.classifyCalls++;
+    return { output: this.classifyResult, model, tokensIn: 100, tokensOut: 20 };
+  }
+}
+export const fakeAi = new FakeAi();
+export const notifications: { subject: string; text: string }[] = [];
+export const pages = { value: [] as FetchedPage[] };
 
 export const ADMIN_ID = '00000000-0000-4000-8000-0000000000aa';
 
@@ -81,6 +104,10 @@ export async function createHarness(now: Date): Promise<Harness> {
     publisher,
     mail,
     verifier: { configured: true, verify: async () => 'valid' },
+    ai: fakeAi,
+    notifier: { configured: true, send: async (m) => void notifications.push(m) },
+    fetchPages: async () => pages.value,
+    parseMail,
     downloadAttachment: async () => Buffer.from('%PDF-1.4 test'),
     now: () => clock.now,
     randomGapSeconds: () => 90,

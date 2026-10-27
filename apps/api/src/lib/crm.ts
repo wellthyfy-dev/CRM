@@ -1,14 +1,10 @@
-import { and, desc, eq, inArray, ne } from 'drizzle-orm';
-import { buildMergeVars, renderEmail, selectTemplateKey } from '@wellthyfy/shared';
+import { and, eq, inArray, ne } from 'drizzle-orm';
+import { selectTemplateKey } from '@wellthyfy/shared';
 import {
   contacts,
-  effectiveOptOutLine,
   emails,
-  getSettings,
   logActivity,
   organisations,
-  programmes,
-  research,
   templates,
   type Contact,
   type Db,
@@ -78,15 +74,7 @@ export async function assertContactEmailFree(db: Db, email: string | null, excep
   }
 }
 
-export async function latestResearch(db: Db, organisationId: string) {
-  const [r] = await db
-    .select()
-    .from(research)
-    .where(eq(research.organisationId, organisationId))
-    .orderBy(desc(research.createdAt))
-    .limit(1);
-  return r ?? null;
-}
+export { latestResearch, renderForContact } from '@wellthyfy/shared/server';
 
 export async function resolveTemplate(db: Db, org: Organisation, templateId?: string): Promise<Template> {
   if (templateId) {
@@ -98,29 +86,6 @@ export async function resolveTemplate(db: Db, org: Organisation, templateId?: st
   const [t] = await db.select().from(templates).where(eq(templates.key, key));
   if (!t) throw notFound(`Template ${key} not found — run the seed`);
   return t;
-}
-
-/** Render a template for an organisation + contact using the latest research and settings. */
-export async function renderForContact(
-  db: Db,
-  org: Organisation,
-  contact: Contact | null,
-  template: Pick<Template, 'subject' | 'body'>,
-) {
-  const r = await latestResearch(db, org.id);
-  const programme = r?.recommendedProgrammeId
-    ? ((await db.select().from(programmes).where(eq(programmes.id, r.recommendedProgrammeId)))[0] ?? null)
-    : null;
-  const s = await getSettings(db);
-  const optOutLine = effectiveOptOutLine(s);
-  const vars = buildMergeVars({
-    organisation: org,
-    contact,
-    research: r,
-    programme,
-    settings: { signature: s.signature, optOutLine },
-  });
-  return { ...renderEmail(template, vars), optOutLine, research: r, programme };
 }
 
 /** Statuses where an email has not left the mailbox yet and can still be cancelled. */
