@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { EmailCheckStatus } from '@wellthyfy/shared';
-import type { ConnectionTestResult } from '@wellthyfy/shared/server';
+import { memoryFileStore, type ConnectionTestResult } from '@wellthyfy/shared/server';
 import type { Services } from './services';
 
 /** In-memory fakes for external services (tests and PGlite demo mode). Never touch the network. */
@@ -37,6 +37,7 @@ export function createFakeServices() {
         return state.titanResult;
       },
     },
+    files: memoryFileStore(),
   } satisfies Services & Record<string, unknown>;
   return services;
 }

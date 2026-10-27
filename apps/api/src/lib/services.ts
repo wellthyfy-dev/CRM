@@ -1,9 +1,11 @@
 import {
+  createFileStore,
   createMailTransport,
   supabaseAdmin,
   zeroBounceVerifier,
   type ConnectionTestResult,
   type EmailVerifier,
+  type FileStore,
   type Logger,
   type ServerEnv,
 } from '@wellthyfy/shared/server';
@@ -19,6 +21,7 @@ export interface Services {
   users: UserDirectory;
   emailVerifier: EmailVerifier;
   titan: { testConnection(): Promise<ConnectionTestResult> };
+  files: FileStore;
 }
 
 export function supabaseUserDirectory(env: ServerEnv): UserDirectory {
@@ -40,5 +43,6 @@ export function createServices(env: ServerEnv, logger: Logger): Services {
     users: supabaseUserDirectory(env),
     emailVerifier: zeroBounceVerifier(env.ZEROBOUNCE_API_KEY),
     titan: { testConnection: () => transport.testConnection() },
+    files: createFileStore(env),
   };
 }

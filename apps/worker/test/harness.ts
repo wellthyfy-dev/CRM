@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import type PgBoss from 'pg-boss';
 import {
   contacts,
@@ -8,6 +8,8 @@ import {
   profiles,
   readServerEnv,
   RecordingPublisher,
+  seed,
+  settings,
   type AiProvider,
   type AiResult,
   type ConnectionTestResult,
@@ -36,6 +38,15 @@ export class FakeAi implements AiProvider {
   }
 }
 export const fakeAi = new FakeAi();
+export const fakeSearcher = {
+  configured: true,
+  calls: [] as string[],
+  results: [] as { title: string; link: string; snippet?: string }[],
+  async search(q: string) {
+    fakeSearcher.calls.push(q);
+    return fakeSearcher.results;
+  },
+};
 export const notifications: { subject: string; text: string }[] = [];
 export const pages = { value: [] as FetchedPage[] };
 
@@ -84,8 +95,24 @@ export interface Harness {
   clock: { now: Date };
 }
 
+let shared: DbHandle | null = null;
+
+/** One PGlite database per test file; data tables are truncated and settings reset for each harness. */
+async function freshDb(): Promise<DbHandle> {
+  if (!shared) {
+    shared = await createTestDb();
+    return shared;
+  }
+  await shared.db.execute(
+    sql`truncate table activities, replies, proposals, emails, research, contacts, ai_usage, discovery_runs, suppressions, organisations, profiles restart identity cascade`,
+  );
+  await shared.db.delete(settings);
+  await seed(shared.db);
+  return shared;
+}
+
 export async function createHarness(now: Date): Promise<Harness> {
-  const handle = await createTestDb();
+  const handle = await freshDb();
   await handle.db
     .insert(profiles)
     .values({ id: ADMIN_ID, fullName: 'Admin', role: 'admin', email: 'admin@wellthyfy.in' });
@@ -107,6 +134,7 @@ export async function createHarness(now: Date): Promise<Harness> {
     ai: fakeAi,
     notifier: { configured: true, send: async (m) => void notifications.push(m) },
     fetchPages: async () => pages.value,
+    searcher: fakeSearcher,
     parseMail,
     downloadAttachment: async () => Buffer.from('%PDF-1.4 test'),
     now: () => clock.now,

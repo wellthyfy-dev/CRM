@@ -13,3 +13,4 @@ test-results/
 apps/web/e2e/.data/
 .pglite/
 *.tsbuildinfo
+.storage/

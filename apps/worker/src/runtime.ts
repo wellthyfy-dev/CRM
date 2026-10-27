@@ -11,6 +11,7 @@ import {
   type QueueName,
   type ServerEnv,
   type StaffNotifier,
+  type WebSearcher,
 } from '@wellthyfy/shared/server';
 
 export interface WorkerDeps {
@@ -23,6 +24,7 @@ export interface WorkerDeps {
   verifier: EmailVerifier;
   ai: AiProvider;
   notifier: StaffNotifier;
+  searcher: WebSearcher;
   fetchPages: (website: string) => Promise<FetchedPage[]>;
   /** Parse a raw RFC 822 message (mailparser in production). */
   parseMail: (raw: Buffer) => Promise<ParsedMail>;

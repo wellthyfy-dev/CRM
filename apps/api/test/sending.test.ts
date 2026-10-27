@@ -13,23 +13,19 @@ afterAll(async () => t.handle.close());
 async function approvedEmail() {
   const slug = Math.random().toString(36).slice(2);
   const org = (
-    await t
-      .as('researcher')
-      .post('/api/organisations', {
-        name: `C ${slug}`,
-        orgType: 'college_university',
-        segment: 'mba_commerce',
-        website: `https://${slug}.ac.in`,
-      })
+    await t.as('researcher').post('/api/organisations', {
+      name: `C ${slug}`,
+      orgType: 'college_university',
+      segment: 'mba_commerce',
+      website: `https://${slug}.ac.in`,
+    })
   ).body;
   const c = (
-    await t
-      .as('researcher')
-      .post(`/api/organisations/${org.id}/contacts`, {
-        fullName: 'Dr. X',
-        email: `d@${slug}.ac.in`,
-        sourceUrl: `https://${slug}.ac.in/x`,
-      })
+    await t.as('researcher').post(`/api/organisations/${org.id}/contacts`, {
+      fullName: 'Dr. X',
+      email: `d@${slug}.ac.in`,
+      sourceUrl: `https://${slug}.ac.in/x`,
+    })
   ).body;
   await t.as('researcher').post(`/api/contacts/${c.id}/verify`, {});
   const e = (await t.as('researcher').post('/api/emails', { organisationId: org.id, contactId: c.id })).body;

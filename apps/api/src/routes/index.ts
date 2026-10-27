@@ -1,12 +1,15 @@
 import type { Router } from 'express';
 import type { RouteDeps } from '../app';
 import { contactRoutes } from './contacts';
+import { discoveryRoutes } from './discovery';
 import { emailRoutes } from './emails';
 import { importRoutes } from './import';
 import { meRoutes } from './me';
 import { organisationRoutes } from './organisations';
 import { pipelineRoutes } from './pipeline';
 import { programmeRoutes } from './programmes';
+import { proposalRoutes } from './proposals';
+import { reportRoutes } from './reports';
 import { researchRoutes } from './research';
 import { sendingRoutes } from './sending';
 import { settingsRoutes } from './settings';
@@ -27,4 +30,7 @@ export function registerApiRoutes(api: Router, deps: RouteDeps): void {
   api.use(pipelineRoutes(deps));
   api.use(userRoutes(deps));
   api.use(settingsRoutes(deps));
+  api.use(discoveryRoutes(deps));
+  api.use(proposalRoutes(deps));
+  api.use(reportRoutes(deps));
 }

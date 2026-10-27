@@ -11,3 +11,5 @@ export * from './import/mapping';
 export * from './replies/classify';
 export * from './ai/research';
 export * from './ai/prompt';
+export * from './discovery';
+export * from './reports';

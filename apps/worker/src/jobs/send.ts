@@ -7,6 +7,7 @@ import {
   emails,
   getSettings,
   logActivity,
+  proposals,
   QUEUES,
   settings,
   type Email,
@@ -78,6 +79,9 @@ async function onSent(deps: WorkerDeps, email: Email, raw: Buffer, messageId: st
     null,
     'email sent',
   );
+  if (email.kind === 'proposal') {
+    await db.update(proposals).set({ status: 'sent', sentAt: now() }).where(eq(proposals.emailId, email.id));
+  }
   // Random 60–180 s gap before the next send.
   const gap = deps.randomGapSeconds();
   await db

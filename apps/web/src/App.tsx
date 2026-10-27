@@ -3,6 +3,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { useAuth } from '@/lib/auth';
 import { canAccess } from '@/lib/nav';
 import { DashboardPage } from '@/pages/DashboardPage';
+import { DiscoveryPage } from '@/pages/DiscoveryPage';
 import { ApprovalsPage } from '@/pages/emails/ApprovalsPage';
 import { EmailDetailPage } from '@/pages/emails/EmailDetailPage';
 import { EmailsPage } from '@/pages/emails/EmailsPage';
@@ -13,8 +14,10 @@ import { OrganisationsPage } from '@/pages/organisations/OrganisationsPage';
 import { PipelinePage } from '@/pages/PipelinePage';
 import { PlaceholderPage } from '@/pages/PlaceholderPage';
 import { ProgrammesPage } from '@/pages/ProgrammesPage';
+import { ProposalsPage } from '@/pages/ProposalsPage';
 import { QueuePage } from '@/pages/QueuePage';
 import { RepliesPage } from '@/pages/RepliesPage';
+import { ReportsPage } from '@/pages/ReportsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { TemplatesPage } from '@/pages/TemplatesPage';
 import { UsersPage } from '@/pages/UsersPage';
@@ -41,16 +44,16 @@ export function App() {
           <Route path="organisations/import" element={<ImportPage />} />
           <Route path="organisations/:id" element={<OrganisationDetailPage />} />
           <Route path="pipeline" element={<PipelinePage />} />
-          <Route path="discovery" element={<PlaceholderPage title="Discovery" />} />
+          <Route path="discovery" element={<DiscoveryPage />} />
           <Route path="approvals" element={<ApprovalsPage />} />
           <Route path="emails" element={<EmailsPage />} />
           <Route path="emails/:id" element={<EmailDetailPage />} />
           <Route path="queue" element={<QueuePage />} />
           <Route path="replies" element={<RepliesPage />} />
-          <Route path="proposals" element={<PlaceholderPage title="Proposals" />} />
+          <Route path="proposals" element={<ProposalsPage />} />
           <Route path="templates" element={<TemplatesPage />} />
           <Route path="programmes" element={<ProgrammesPage />} />
-          <Route path="reports" element={<PlaceholderPage title="Reports" />} />
+          <Route path="reports" element={<ReportsPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="*" element={<PlaceholderPage title="Not found" />} />

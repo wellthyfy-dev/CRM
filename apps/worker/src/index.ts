@@ -5,12 +5,13 @@ import {
   createDb,
   createLogger,
   createMailTransport,
-  downloadFile,
+  createFileStore,
   fetchSitePages,
   isPgliteUrl,
   loadEnv,
   readServerEnv,
   resendNotifier,
+  serperSearcher,
   zeroBounceVerifier,
 } from '@wellthyfy/shared/server';
 import { ALL_JOBS } from './jobs';
@@ -32,6 +33,7 @@ if (isPgliteUrl(env.DATABASE_URL)) {
 }
 
 const handle = await createDb(env.DATABASE_URL, { max: 5 });
+const fileStore = createFileStore(env);
 const boss = await startBoss(env, logger);
 const state: WorkerState = { startedAt: new Date(), lastHeartbeatAt: null, lastJobAt: {} };
 await registerJobs(
@@ -47,7 +49,8 @@ await registerJobs(
     notifier: resendNotifier(env),
     fetchPages: (website) => fetchSitePages(website),
     parseMail,
-    downloadAttachment: downloadFile,
+    downloadAttachment: (key) => fileStore.get(key),
+    searcher: serperSearcher(env.SERPER_API_KEY),
     now: () => new Date(),
     randomGapSeconds: () => 60 + Math.floor(Math.random() * 121),
     state,

@@ -163,3 +163,37 @@
 - AI uses effort `medium` for research and `low` for classification; refusals and schema failures are logged as
   `ai_research_failed` and fall back to "other" for classification.
 - The worker must run as a single instance (one-at-a-time sending relies on it).
+
+## Step 3 — Discovery, proposals, reports
+
+### What was built
+- **Discovery** (Serper): choose type/segment, state, district/city, keywords, max results. The worker runs a few
+  query variants (up to 3 pages each), normalises domains and drops social media, directories (Justdial, Shiksha,
+  Collegedunia…), news, job boards, marketplaces and organisations already in the CRM. Review table with checkboxes;
+  "Add selected" creates organisations (stage `research_needed`, source `discovery`, segment chosen or guessed) and can
+  queue AI research for each. `search_monthly_limit` enforced (searches counted per IST month).
+- **Proposals**: pick programme, addressee, duration, fee, notes → branded A4 PDF (@react-pdf/renderer: logo
+  placeholder, company + tagline, trainer profile, requirement from research, modules, format, fee, contact) stored in
+  Supabase Storage (`proposals/<org>/<id>.pdf`; local `.storage/` folder in dev). "Attach to email" creates a
+  `proposal` email **draft** in the contact's existing thread with the PDF attached — it still needs submit + admin
+  approval + Send. When it is sent, the proposal becomes `sent` and the stage `proposal_sent`; "Accepted" moves the
+  organisation to `training_confirmed`. Proposals page with open pipeline and confirmed value.
+- **Reports**: funnel conversion by segment and by city/district (counting the furthest stage each organisation
+  reached, so lost organisations still count), first-contact template reply rates (bounces and out-of-office excluded),
+  monthly activity (IST months: new orgs, sends, replies, meetings, proposals, confirmations, confirmed value, new
+  pipeline value), reply/meeting/proposal/win rates, average days per stage, pipeline and confirmed value. CSV export
+  for every section.
+
+### How to test
+- `npm test` — 164 tests (adds discovery filtering, report maths, discovery job + search limit, proposal PDF/email/
+  acceptance flow, proposal email send with attachment, discovery "add selected", report CSVs).
+- Manual: Organisation → Proposals → New proposal → PDF opens → Attach to email → submit → approve → send (dry run) →
+  proposal shows `sent`. Discovery needs `SERPER_API_KEY` and the worker running.
+
+### Decisions / defaults (Step 3)
+- Proposal emails are sent in the most recent sent thread with the contact (`Re: …`); if none exists they start a new
+  thread with subject "Training Proposal | <organisation>".
+- Proposal fee is shown "INR …, taxes as applicable"; the "SAMPLE – edit me:" prefix is stripped from programme names
+  in the PDF and email.
+- Discovery is available to admins and researchers (viewers can't spend searches).
+- Test runner: PGlite instances are reused per test file and Vitest forks are capped at 3 to keep memory stable.
