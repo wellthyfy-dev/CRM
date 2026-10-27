@@ -1,0 +1,27 @@
+{
+  "name": "@wellthyfy/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --clear-screen=false src/index.ts",
+    "build": "tsup",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@sentry/node": "^11.9.0",
+    "@wellthyfy/shared": "*",
+    "drizzle-orm": "^0.45.4",
+    "imapflow": "^2.9.1",
+    "mailparser": "^3.12.4",
+    "nodemailer": "^10.2.1",
+    "pg-boss": "^10.4.2",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/mailparser": "^3.9.0",
+    "@types/nodemailer": "^8.0.2",
+    "tsup": "^9.0.0"
+  }
+}

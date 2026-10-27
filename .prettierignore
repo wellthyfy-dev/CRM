@@ -1,0 +1,9 @@
+node_modules
+dist
+coverage
+reference
+packages/shared/drizzle
+playwright-report
+test-results
+package-lock.json
+*.md

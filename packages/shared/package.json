@@ -1,0 +1,30 @@
+{
+  "name": "@wellthyfy/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./server": "./src/server/index.ts",
+    "./db/schema": "./src/db/schema.ts",
+    "./testing": "./src/server/testing.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/db/migrate-cli.ts",
+    "db:seed": "tsx src/db/seed-cli.ts"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.12",
+    "@supabase/supabase-js": "^2.118.0",
+    "drizzle-orm": "^0.45.4",
+    "pg": "^8.23.1",
+    "pino": "^10.4.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.23.1",
+    "drizzle-kit": "^0.31.11"
+  }
+}
