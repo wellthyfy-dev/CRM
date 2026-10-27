@@ -88,7 +88,10 @@ export async function createTestContext(opts: { now?: Date } = {}): Promise<Test
     const auth = `Bearer ${tokens[role]}`;
     return {
       get: (url: string) => request(app).get(url).set('Authorization', auth),
-      post: (url: string, body: object = {}) => request(app).post(url).set('Authorization', auth).send(body),
+      post: (url: string, body?: object) => {
+        const req = request(app).post(url).set('Authorization', auth);
+        return body === undefined ? req : req.send(body);
+      },
       patch: (url: string, body: object = {}) =>
         request(app).patch(url).set('Authorization', auth).send(body),
       put: (url: string, body: object = {}) => request(app).put(url).set('Authorization', auth).send(body),

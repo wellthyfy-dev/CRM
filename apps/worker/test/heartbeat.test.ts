@@ -1,28 +1,17 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type PgBoss from 'pg-boss';
-import { createLogger, readServerEnv, type DbHandle } from '@wellthyfy/shared/server';
-import { createTestDb } from '@wellthyfy/shared/testing';
 import { heartbeatJob } from '../src/jobs/heartbeat';
-import type { WorkerDeps } from '../src/runtime';
+import { createHarness, type Harness } from './harness';
 
-let h: DbHandle;
+const NOW = new Date('2026-10-27T05:00:00Z');
+let h: Harness;
 beforeAll(async () => {
-  h = await createTestDb();
+  h = await createHarness(NOW);
 });
-afterAll(async () => h.close());
+afterAll(async () => h.handle.close());
 
 describe('heartbeat job', () => {
   it('pings the database and records the heartbeat', async () => {
-    const now = new Date('2026-10-27T05:00:00Z');
-    const deps: WorkerDeps = {
-      db: h.db,
-      env: readServerEnv({ DATABASE_URL: 'pglite://memory' }),
-      logger: createLogger('test'),
-      boss: {} as PgBoss,
-      now: () => now,
-      state: { startedAt: now, lastHeartbeatAt: null, lastJobAt: {} },
-    };
-    await heartbeatJob.handler(deps, {});
-    expect(deps.state.lastHeartbeatAt).toEqual(now);
+    await heartbeatJob.handler(h.deps, {});
+    expect(h.deps.state.lastHeartbeatAt).toEqual(NOW);
   });
 });

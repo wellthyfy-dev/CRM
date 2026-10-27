@@ -1,4 +1,12 @@
-import { supabaseAdmin, type ServerEnv } from '@wellthyfy/shared/server';
+import {
+  createMailTransport,
+  supabaseAdmin,
+  zeroBounceVerifier,
+  type ConnectionTestResult,
+  type EmailVerifier,
+  type Logger,
+  type ServerEnv,
+} from '@wellthyfy/shared/server';
 
 // External integrations behind interfaces, so routes are testable without network access.
 
@@ -9,6 +17,8 @@ export interface UserDirectory {
 
 export interface Services {
   users: UserDirectory;
+  emailVerifier: EmailVerifier;
+  titan: { testConnection(): Promise<ConnectionTestResult> };
 }
 
 export function supabaseUserDirectory(env: ServerEnv): UserDirectory {
@@ -24,6 +34,11 @@ export function supabaseUserDirectory(env: ServerEnv): UserDirectory {
   };
 }
 
-export function createServices(env: ServerEnv): Services {
-  return { users: supabaseUserDirectory(env) };
+export function createServices(env: ServerEnv, logger: Logger): Services {
+  const transport = createMailTransport(env, logger);
+  return {
+    users: supabaseUserDirectory(env),
+    emailVerifier: zeroBounceVerifier(env.ZEROBOUNCE_API_KEY),
+    titan: { testConnection: () => transport.testConnection() },
+  };
 }

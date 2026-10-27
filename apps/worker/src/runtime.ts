@@ -1,12 +1,27 @@
 import PgBoss from 'pg-boss';
-import { QUEUES, type Db, type Logger, type QueueName, type ServerEnv } from '@wellthyfy/shared/server';
+import {
+  QUEUES,
+  type Db,
+  type EmailVerifier,
+  type JobPublisher,
+  type Logger,
+  type MailTransport,
+  type QueueName,
+  type ServerEnv,
+} from '@wellthyfy/shared/server';
 
 export interface WorkerDeps {
   db: Db;
   env: ServerEnv;
   logger: Logger;
   boss: PgBoss;
+  publisher: JobPublisher;
+  mail: MailTransport;
+  verifier: EmailVerifier;
+  downloadAttachment: (path: string) => Promise<Buffer>;
   now: () => Date;
+  /** Random gap between sends, in seconds (60–180 in production). */
+  randomGapSeconds: () => number;
   state: WorkerState;
 }
 
@@ -33,6 +48,17 @@ export async function startBoss(env: ServerEnv, logger: Logger): Promise<PgBoss>
   await boss.start();
   for (const q of Object.values(QUEUES)) await boss.createQueue(q);
   return boss;
+}
+
+export function bossPublisher(boss: PgBoss): JobPublisher {
+  return {
+    async send(queue, data, options = {}) {
+      await boss.send(queue, data, {
+        startAfter: options.startAfterSeconds,
+        singletonKey: options.singletonKey,
+      });
+    },
+  };
 }
 
 export async function registerJobs(deps: WorkerDeps, jobs: JobDefinition[]): Promise<void> {

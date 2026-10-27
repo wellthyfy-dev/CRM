@@ -6,3 +6,5 @@ export * from './schemas';
 export * from './templates/render';
 export * from './templates/seed-data';
 export * from './gate/evaluate';
+export * from './stages';
+export * from './import/mapping';

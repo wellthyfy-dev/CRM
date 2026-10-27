@@ -1,8 +1,17 @@
 import http from 'node:http';
 import * as Sentry from '@sentry/node';
-import { createDb, createLogger, isPgliteUrl, loadEnv, readServerEnv } from '@wellthyfy/shared/server';
+import {
+  createDb,
+  createLogger,
+  createMailTransport,
+  downloadFile,
+  isPgliteUrl,
+  loadEnv,
+  readServerEnv,
+  zeroBounceVerifier,
+} from '@wellthyfy/shared/server';
 import { ALL_JOBS } from './jobs';
-import { registerJobs, startBoss, type WorkerState } from './runtime';
+import { bossPublisher, registerJobs, startBoss, type WorkerState } from './runtime';
 
 loadEnv();
 const env = readServerEnv();
@@ -21,7 +30,22 @@ if (isPgliteUrl(env.DATABASE_URL)) {
 const handle = await createDb(env.DATABASE_URL, { max: 5 });
 const boss = await startBoss(env, logger);
 const state: WorkerState = { startedAt: new Date(), lastHeartbeatAt: null, lastJobAt: {} };
-await registerJobs({ db: handle.db, env, logger, boss, now: () => new Date(), state }, ALL_JOBS);
+await registerJobs(
+  {
+    db: handle.db,
+    env,
+    logger,
+    boss,
+    publisher: bossPublisher(boss),
+    mail: createMailTransport(env, logger),
+    verifier: zeroBounceVerifier(env.ZEROBOUNCE_API_KEY),
+    downloadAttachment: downloadFile,
+    now: () => new Date(),
+    randomGapSeconds: () => 60 + Math.floor(Math.random() * 121),
+    state,
+  },
+  ALL_JOBS,
+);
 logger.info({ emailMode: env.EMAIL_MODE, jobs: ALL_JOBS.map((j) => j.queue) }, 'worker started');
 
 // Optional health endpoint (Render web services need a port; background workers don't).

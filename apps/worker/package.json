@@ -21,7 +21,6 @@
   },
   "devDependencies": {
     "@types/mailparser": "^3.9.0",
-    "@types/nodemailer": "^8.0.2",
     "tsup": "^9.0.0"
   }
 }

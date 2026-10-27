@@ -13,6 +13,7 @@ import { createApp } from './app';
 import { createTokenVerifier } from './lib/auth';
 import { LoggingPublisher, PgBossPublisher } from './lib/queue';
 import { createServices } from './lib/services';
+import { seedE2eUsers } from './lib/e2e';
 
 loadEnv();
 const env = readServerEnv();
@@ -29,6 +30,7 @@ if (isPgliteUrl(env.DATABASE_URL)) {
   // Local demo / e2e: in-process database, migrated and seeded on boot; no job queue.
   await runMigrations(handle);
   await seed(handle.db);
+  if (process.env.E2E_SEED_USERS === '1') await seedE2eUsers(handle.db);
   publisher = new LoggingPublisher(logger);
 } else {
   const boss = await PgBossPublisher.start(env.DATABASE_URL, logger);
@@ -42,7 +44,7 @@ const app = createApp({
   logger,
   publisher,
   verifyToken: createTokenVerifier(env),
-  services: createServices(env),
+  services: createServices(env, logger),
   onUnexpectedError: (err) => env.SENTRY_DSN && Sentry.captureException(err),
 });
 
