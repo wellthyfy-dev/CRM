@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+**/dist
+.git
+.env
+.env.*
+.storage
+.pglite
+coverage
+apps/web/playwright-report
+apps/web/test-results
+reference

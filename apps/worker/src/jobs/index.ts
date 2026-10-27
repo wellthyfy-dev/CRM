@@ -1,5 +1,6 @@
 import type { JobDefinition } from '../runtime';
 import { aiResearchJob } from './ai-research';
+import { backupJob } from './backup';
 import { discoveryJob } from './discovery';
 import { followUpsJob } from './follow-ups';
 import { heartbeatJob } from './heartbeat';
@@ -20,4 +21,5 @@ export const ALL_JOBS: JobDefinition[] = [
   digestJob,
   replyAlertJob,
   discoveryJob,
+  backupJob,
 ];

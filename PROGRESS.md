@@ -197,3 +197,102 @@
   in the PDF and email.
 - Discovery is available to admins and researchers (viewers can't spend searches).
 - Test runner: PGlite instances are reused per test file and Vitest forks are capped at 3 to keep memory stable.
+
+## Step 4 — Hardening and deployment
+
+### What was built
+- **Nightly backup** (worker, 02:30 IST): `pg_dump` (plain SQL, `public` + `pgboss` schemas, credentials via `PG*`
+  env vars) gzipped to Supabase Storage `backups/YYYY-MM-DD.sql.gz`; falls back to a gzipped JSON export of every table
+  if `pg_dump` is missing. Files older than 30 days are deleted. The worker Docker image installs `postgresql-client-17`.
+- **Delete contact data** (admin, type DELETE to confirm): erases name/email/phone/source, redacts their email bodies
+  and replies, removes them from AI suggestions and activity payloads, cancels unsent emails, logs
+  `contact_data_deleted`, and keeps only a SHA-256 of the address on the permanent opt-out list. The **privacy notice
+  URL** setting is appended to the opt-out line in every email.
+- **Sentry** for web (React error boundary), api (unexpected errors) and worker (job failures) — enabled when the DSN is
+  set. **Health**: `GET /health` on the api (checks the DB); optional worker `/health` (`WORKER_HEALTH_PORT`).
+- **Security review** against the safety rules — see [SECURITY_REVIEW.md](SECURITY_REVIEW.md). Gaps fixed: send lease
+  (no concurrent sends), opt-out line re-applied before SMTP, SSRF guard on the crawler (every redirect hop),
+  security headers + rate limiting, data-deletion action, `pg_dump` credentials out of argv.
+- **Deployment**: `render.yaml` blueprint (api web service with pre-deploy migrations; Docker worker, 1 instance),
+  `apps/worker/Dockerfile`, `apps/web/vercel.json` (monorepo build, SPA rewrites, headers), README deployment guide,
+  EMAIL_MODE switch procedure and first-day checklist. Fixed production bundling (tsup now keeps `node_modules`
+  external); the bundled api and worker were smoke-tested.
+
+### How to test
+- `npm run lint && npm run typecheck && npm test && npm run build`; `npm run test:e2e`.
+- `npm test` adds: backup (JSON + pg_dump paths, 30-day pruning, libpq env), data-deletion flow, security headers,
+  send lease, opt-out re-append, SSRF guard and crawler redirects.
+
+---
+
+## Manual test checklist (before go-live)
+
+Run in **dry_run** first, then repeat the email items in **live** to an internal test address only.
+
+1. **Import the reference xlsx** — Organisations → Import → upload `reference/Wellthyfy_Outreach_CRM.xlsx`: "2 rows, 26
+   columns", all 26 mappings pre-filled, "Check interpretation" shows both rows "skip: SAMPLE- placeholder row",
+   Import → Created 0 / Skipped 2. Add two real rows to a copy and import again → Created 2 with correct type,
+   segment, stage and follow-up date.
+2. **Role permissions** — as viewer: no New/Import buttons, no Approvals/Queue/Settings/Users menu, edits are refused.
+   As researcher: can create organisations, contacts, research and drafts and submit them; cannot approve (button
+   absent, `/approvals` blocked) or change settings. As admin: everything; cannot demote yourself or the last admin.
+3. **Gate blocks** — unverified contact: no "Create email" button. Opt out a contact with a pending email → email
+   cancelled; re-adding the address keeps it opted out. Mark the organisation do-not-contact → Approve fails with the
+   reason. Contact with ZeroBounce `invalid` → Send fails with "Email verification returned invalid".
+4. **Titan draft in webmail** (live, test address) — approve an email → within a minute it appears in Titan webmail →
+   Drafts with the right From name, Reply-To and body; the email page shows "Titan draft uid …".
+5. **Live send to a test address only** — Send → Queue page shows it queued; inside the window it is sent; the copy is
+   in Titan Sent, the draft is gone, the organisation stage is "Sent", the activity log shows the send.
+6. **Reply detection stops follow-ups** — set follow-up 1 to 1 day, send, let the 08:00 job run → a follow-up appears in
+   Approvals as pending; reply from the test mailbox → within 5 minutes Replies shows it (classified), the email is
+   "replied", the stage is "Replied" and the pending follow-up is cancelled.
+7. **STOP sets opt-out** — reply "STOP" → classification "unsubscribe", contact opted out, unsent emails cancelled,
+   no new email can be created for that address.
+8. **Caps respected (cap = 2)** — Settings: hourly 2, daily 2; queue 3 approved emails → exactly 2 are sent (60–180 s
+   apart), the third waits (hourly/daily cap) and goes out in the next IST hour/day; Queue shows remaining capacity 0.
+9. **AI research with suggested contacts** — organisation with a real website → Research → "Research with AI" → within
+   a minute the panel shows training need, quoted evidence with URLs, confidence and "Suggested – not verified"
+   contacts that literally appear on the linked page; Add → contact appears unverified with "AI suggested"; the cost
+   shows in ₹; "Use AI draft" fills the compose dialog with signature and opt-out line.
+10. **Discovery** — engineering colleges, Tamil Nadu, Coimbatore, 10 results → results exclude social media,
+    directories, news, job boards and existing organisations → select 3 → Add (with AI research) → they appear as
+    "Research needed", source discovery; the searches-used counter increases.
+11. **Proposal PDF** — organisation → Proposals → New proposal → the PDF opens with logo placeholder, profile, tagline,
+    modules, format, fee and contact → Attach to email → draft with the PDF → submit → approve → send → proposal
+    "sent", stage "Proposal sent" → Accepted → stage "Training confirmed".
+12. **Reports** — rates, monthly chart and table, funnel by segment and city, template reply rates, average days per
+    stage, pipeline and confirmed value; every CSV export downloads and opens in Excel.
+13. **Housekeeping** — next morning the staff digest arrives at `ALERT_EMAIL_TO`; an "interested" reply triggered an
+    instant alert; Storage has `backups/<date>.sql.gz`; "Delete contact data" on a test contact anonymises it.
+
+## What you must set up manually before going live
+
+**Accounts and keys**
+- **Supabase**: production project (Mumbai), sign-ups disabled, Site URL and redirects set; copy URL, anon key,
+  service role key, (legacy JWT secret if shown) and the session-pooler `DATABASE_URL`; run migrate, seed and
+  create-admin.
+- **Titan Mail**: the password of `ceo@wellthyfy.in` (or a dedicated outreach mailbox) for `TITAN_USER` /
+  `TITAN_PASSWORD`; confirm IMAP/SMTP access is enabled in the Titan admin panel; check the plan's daily sending limit
+  and keep `daily_send_cap` below it.
+- **Resend**: account, a verified sending domain or subdomain for staff alerts (e.g. `notify.wellthyfy.in`), API key,
+  `RESEND_FROM`, and `ALERT_EMAIL_TO` (staff addresses only).
+- **Anthropic**: API key with billing; also set a spend limit in the Anthropic Console besides the in-app limit.
+- **Serper** (serper.dev) and **ZeroBounce** API keys with credits.
+- **Sentry**: project(s) for web, api and worker → `SENTRY_DSN` / `VITE_SENTRY_DSN`.
+- **Render** (Blueprint from `render.yaml`) and **Vercel** (root `apps/web`) connected to the GitHub repository.
+
+**DNS checks for `wellthyfy.in`**
+- **MX** records point to Titan.
+- **SPF**: one TXT record that includes Titan (e.g. `v=spf1 include:spf.titan.email ~all`); send Resend alerts from a
+  subdomain so its SPF stays separate.
+- **DKIM**: enable DKIM in the Titan admin panel and publish the TXT record it shows; publish Resend's DKIM records
+  for the alert domain or subdomain.
+- **DMARC**: `_dmarc.wellthyfy.in` TXT, start with `v=DMARC1; p=none; rua=mailto:<your address>`, move to
+  `quarantine` once the reports are clean.
+- Confirm SPF, DKIM and DMARC all PASS (Gmail "Show original" or a mail-tester) before switching to live.
+- App domains: `crm.wellthyfy.in` CNAME → Vercel; optionally a custom domain for the Render API.
+
+**Content and compliance**
+- Replace the sample programmes, review templates and signature, publish a privacy notice page and set its URL in
+  Settings (it is added to every opt-out line).
+- Keep the worker at one instance and `EMAIL_MODE=dry_run` until the checklist above passes.

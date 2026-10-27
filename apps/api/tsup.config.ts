@@ -10,4 +10,6 @@ export default defineConfig({
   sourcemap: true,
   // Bundle the workspace package (TypeScript source); keep npm deps external.
   noExternal: ['@wellthyfy/shared'],
+  // Everything else in node_modules (including the shared package's own dependencies) stays external.
+  skipNodeModulesBundle: true,
 });

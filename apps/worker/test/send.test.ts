@@ -128,3 +128,31 @@ describe('send scheduler', () => {
     expect((await import('./harness')).notifications.length).toBe(before + 1);
   });
 });
+
+describe('send hardening', () => {
+  it('only one tick can hold the send lease at a time', async () => {
+    await seedEmail(h, { status: 'queued' });
+    await seedEmail(h, { status: 'queued' });
+    const [a, b] = await Promise.all([sendTick(h.deps), sendTick(h.deps)]);
+    expect([a.action, b.action].filter((x) => x === 'sent')).toHaveLength(1);
+    expect(h.mail.sends).toHaveLength(1);
+  });
+
+  it('releases the lease when nothing is sent', async () => {
+    expect(await sendTick(h.deps)).toMatchObject({ action: 'idle', reason: 'Nothing queued' });
+    const [s] = await h.handle.db.select().from(settings);
+    expect(s!.nextSendAfter).toBeNull();
+  });
+
+  it('re-appends the opt-out line if it is missing at send time', async () => {
+    const { email } = await seedEmail(h, { status: 'queued' });
+    await h.handle.db
+      .update(emails)
+      .set({ body: 'Dear Sir/Madam,\n\nNo footer.' })
+      .where(eq(emails.id, email.id));
+    await sendTick(h.deps);
+    const raw = h.mail.sends[0]!.raw.toString();
+    expect(raw).toContain('simply reply STOP.');
+    expect((await reloadEmail(h, email.id)).body.endsWith('simply reply STOP.')).toBe(true);
+  });
+});

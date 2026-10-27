@@ -32,14 +32,12 @@ async function newRun(maxResults = 5) {
 
 describe('discovery job', () => {
   it('searches, filters out social/directories/existing orgs and stores candidates', async () => {
-    await h.handle.db
-      .insert(organisations)
-      .values({
-        name: 'Existing',
-        orgType: 'college_university',
-        segment: 'engineering',
-        domain: 'existing.ac.in',
-      });
+    await h.handle.db.insert(organisations).values({
+      name: 'Existing',
+      orgType: 'college_university',
+      segment: 'engineering',
+      domain: 'existing.ac.in',
+    });
     fakeSearcher.results = [
       { title: 'KCT – Home', link: 'https://kct.ac.in/' },
       { title: 'Existing College', link: 'https://www.existing.ac.in/' },

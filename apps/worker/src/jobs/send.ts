@@ -4,6 +4,7 @@ import {
   checkSendGate,
   classifySmtpError,
   contacts,
+  effectiveOptOutLine,
   emails,
   getSettings,
   logActivity,
@@ -11,12 +12,21 @@ import {
   QUEUES,
   settings,
   type Email,
+  type Settings,
 } from '@wellthyfy/shared/server';
-import { formatGateFailures, isSendDay, isWithinSendWindow, onlyTimingFailures } from '@wellthyfy/shared';
+import {
+  ensureOptOutLine,
+  formatGateFailures,
+  isSendDay,
+  isWithinSendWindow,
+  onlyTimingFailures,
+} from '@wellthyfy/shared';
 import { composeEmail, loadEmailWithContact, senderAddress } from '../lib/compose';
 import type { JobDefinition, WorkerDeps } from '../runtime';
 
 export const MAX_SEND_ATTEMPTS = 5;
+/** Lease held while one email is being sent (expires on its own if the worker dies mid-send). */
+export const SEND_LEASE_MS = 10 * 60_000;
 export const PAUSE_ON_TRANSIENT_MS = 60 * 60_000;
 
 export type SendTickResult =
@@ -171,6 +181,31 @@ export async function sendTick(deps: WorkerDeps): Promise<SendTickResult> {
   if (!isSendDay(t, s.sendDays) || !isWithinSendWindow(t, s.sendWindowStart, s.sendWindowEnd)) {
     return { action: 'idle', reason: 'Outside send window' };
   }
+  // Atomic lease on the settings row: only one tick (across any number of worker instances) may send at a time.
+  const lease = new Date(t.getTime() + SEND_LEASE_MS);
+  const claimed = await db
+    .update(settings)
+    .set({ nextSendAfter: lease })
+    .where(and(eq(settings.id, 1), or(isNull(settings.nextSendAfter), lte(settings.nextSendAfter, t))))
+    .returning({ id: settings.id });
+  if (claimed.length === 0) return { action: 'idle', reason: 'Another send is in progress' };
+  let result: SendTickResult = { action: 'idle', reason: 'Nothing queued' };
+  try {
+    result = await sendOne(deps, s, t);
+    return result;
+  } finally {
+    // A successful send replaces the lease with the random gap; otherwise release it.
+    if (result.action !== 'sent') {
+      await db
+        .update(settings)
+        .set({ nextSendAfter: null })
+        .where(and(eq(settings.id, 1), eq(settings.nextSendAfter, lease)));
+    }
+  }
+}
+
+async function sendOne(deps: WorkerDeps, s: Settings, t: Date): Promise<SendTickResult> {
+  const { db } = deps;
   const email = await pickNext(deps);
   if (!email) return { action: 'idle', reason: 'Nothing queued' };
 
@@ -194,6 +229,12 @@ export async function sendTick(deps: WorkerDeps): Promise<SendTickResult> {
   const loaded = await loadEmailWithContact(deps, email.id);
   const contact = loaded?.contact;
   if (!loaded || !contact?.email) return { action: 'blocked', emailId: email.id, reason: 'contact missing' };
+  // Safety rule 4: the opt-out line must end every outreach email, even if settings changed after drafting.
+  const body = ensureOptOutLine(loaded.email.body, effectiveOptOutLine(s));
+  if (body !== loaded.email.body) {
+    await db.update(emails).set({ body }).where(eq(emails.id, loaded.email.id));
+    loaded.email.body = body;
+  }
   const { raw, messageId } = await composeEmail(deps, loaded.email, contact);
   try {
     await deps.mail.send({ from: senderAddress(deps), to: contact.email }, raw);

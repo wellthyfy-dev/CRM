@@ -1,12 +1,25 @@
 import { Router } from 'express';
-import { and, eq, ne } from 'drizzle-orm';
+import { z } from 'zod';
+import { and, eq, ne, sql } from 'drizzle-orm';
 import { contactCreateSchema, contactUpdateSchema, contactVerifySchema, isHttpUrl } from '@wellthyfy/shared';
-import { contacts, isSuppressed, logActivity, QUEUES, suppress, type Db } from '@wellthyfy/shared/server';
+import {
+  contacts,
+  emails,
+  isSuppressed,
+  logActivity,
+  QUEUES,
+  replies,
+  research,
+  suppress,
+  type Db,
+} from '@wellthyfy/shared/server';
 import type { RouteDeps } from '../app';
-import { canEdit, currentUser } from '../lib/auth';
+import { adminOnly, canEdit, currentUser } from '../lib/auth';
 import { advanceOrg, assertContactEmailFree, cancelUnsentForContact, getContact, getOrg } from '../lib/crm';
 import { badRequest } from '../lib/errors';
 import { idParam, parseBody } from '../lib/http';
+
+const deleteDataSchema = z.object({ confirm: z.literal('DELETE') });
 
 async function clearOtherPrimaries(db: Db, organisationId: string, keepId: string) {
   await db
@@ -173,6 +186,72 @@ export function contactRoutes({ db, publisher, now }: RouteDeps): Router {
       organisationId: c.organisationId,
       userId: user.id,
       type: 'contact_primary_set',
+      payload: { contactId: c.id },
+    });
+    res.json({ ok: true });
+  });
+
+  /**
+   * Data-protection request: anonymise the contact and everything that quotes them. The address stays on the
+   * hashed suppression list so it can never be emailed again (opt-outs are permanent).
+   */
+  r.post('/contacts/:id/delete-data', adminOnly, async (req, res) => {
+    const user = currentUser(req);
+    const c = await getContact(db, idParam(req));
+    parseBody(deleteDataSchema, req);
+    if (c.anonymisedAt) throw badRequest('This contact has already been anonymised');
+    const t = now();
+    if (c.email) {
+      await suppress(db, c.email, 'data deletion request');
+      await db.execute(
+        sql`update activities set payload = payload - 'email' where payload->>'email' = ${c.email}`,
+      );
+      // Drop the person from stored AI suggestions.
+      const rows = await db.select().from(research).where(eq(research.organisationId, c.organisationId));
+      for (const row of rows) {
+        const out = row.aiOutput as { candidateContacts?: { email?: string }[] } | null;
+        if (!out?.candidateContacts?.some((x) => x.email?.toLowerCase() === c.email)) continue;
+        await db
+          .update(research)
+          .set({
+            aiOutput: {
+              ...out,
+              candidateContacts: out.candidateContacts.filter((x) => x.email?.toLowerCase() !== c.email),
+            },
+          })
+          .where(eq(research.id, row.id));
+      }
+    }
+    await cancelUnsentForContact(db, c.id, 'Contact data deleted', user.id);
+    await db
+      .update(emails)
+      .set({ body: '[Content removed following a data-protection request]', attachments: [] })
+      .where(eq(emails.contactId, c.id));
+    await db
+      .update(replies)
+      .set({ fromEmail: '[deleted]', subject: null, snippet: null, summary: null })
+      .where(eq(replies.contactId, c.id));
+    await db
+      .update(contacts)
+      .set({
+        fullName: 'Deleted contact',
+        designation: null,
+        email: null,
+        phone: null,
+        sourceUrl: null,
+        verified: false,
+        verifiedBy: null,
+        verifiedAt: null,
+        optOut: true,
+        optOutAt: c.optOutAt ?? t,
+        aiSuggested: false,
+        anonymisedAt: t,
+      })
+      .where(eq(contacts.id, c.id));
+    await logActivity(db, {
+      organisationId: c.organisationId,
+      userId: user.id,
+      type: 'contact_data_deleted',
       payload: { contactId: c.id },
     });
     res.json({ ok: true });

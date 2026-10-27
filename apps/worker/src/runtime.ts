@@ -5,6 +5,7 @@ import {
   type AiProvider,
   type Db,
   type EmailVerifier,
+  type FileStore,
   type JobPublisher,
   type Logger,
   type MailTransport,
@@ -29,10 +30,14 @@ export interface WorkerDeps {
   /** Parse a raw RFC 822 message (mailparser in production). */
   parseMail: (raw: Buffer) => Promise<ParsedMail>;
   downloadAttachment: (path: string) => Promise<Buffer>;
+  /** Private file storage (proposals, backups). */
+  files: FileStore;
   now: () => Date;
   /** Random gap between sends, in seconds (60–180 in production). */
   randomGapSeconds: () => number;
   state: WorkerState;
+  /** Error reporter (Sentry in production). */
+  captureError?: (err: unknown, tags: Record<string, string>) => void;
 }
 
 export interface ParsedMail {
@@ -99,6 +104,7 @@ export async function registerJobs(deps: WorkerDeps, jobs: JobDefinition[]): Pro
             logger.debug({ queue: job.queue, ms: Date.now() - started }, 'job done');
           } catch (err) {
             logger.error({ queue: job.queue, err: (err as Error).message }, 'job failed');
+            deps.captureError?.(err, { queue: job.queue });
             throw err;
           }
         }

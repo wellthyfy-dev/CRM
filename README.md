@@ -87,3 +87,69 @@ drafts — cannot approve or send) · **viewer** (read-only).
 | `live` | Real sends through Titan SMTP (`smtp.titan.email:465`) and IMAP (`imap.titan.email:993`). Only switch on in production after the first-day checklist. |
 
 Development and tests never send real email. Titan credentials come only from `TITAN_USER` / `TITAN_PASSWORD`.
+
+## Features at a glance
+
+Organisations & contacts (search, filters, CSV, duplicate blocking, verification, permanent opt-out) · xlsx/csv import
+of the reference workbook · manual and AI research (verbatim-only contacts) · versioned templates with live preview ·
+drafting → submit → admin approval → Titan draft → queued send (caps, IST window, random gaps, gate re-check) ·
+follow-ups drafted for approval · read-only reply detection with rule + AI classification · ZeroBounce · discovery via
+Serper · proposal PDFs · pipeline board · dashboard and reports · staff digest/alerts via Resend · nightly backups ·
+data-deletion requests. See [PROGRESS.md](PROGRESS.md) for details and [SECURITY_REVIEW.md](SECURITY_REVIEW.md).
+
+## Deployment
+
+Target: **web on Vercel**, **api + worker on Render** (Singapore region, closest to India), **DB/auth/storage on
+Supabase** (Mumbai). Everything below uses `dry_run` until the first-day checklist is complete.
+
+### 1. Supabase (production project)
+1. Create a new project (region `ap-south-1` Mumbai); save the database password in a password manager.
+2. **Auth → Providers → Email**: enable email + password, **turn off "Allow new users to sign up"**.
+   **Auth → URL configuration**: Site URL = your Vercel URL (e.g. `https://crm.wellthyfy.in`); add it to Redirect URLs.
+   Optionally configure custom SMTP for auth emails (invites) under Auth → Emails.
+3. **Project Settings → API**: copy URL, anon key, service role key (and the JWT secret if your project shows a legacy
+   one). Keep "Exposed schemas" as `public` only.
+4. **Project Settings → Database**: copy the **session pooler** (port 5432) or direct connection string → `DATABASE_URL`.
+5. From your machine with the production `.env`: `npm run db:migrate && npm run db:seed` (creates the private storage
+   bucket `wellthyfy-crm`), then `npm run create-admin -- ceo@wellthyfy.in '<strong password>' "Selvaganapathy V."`.
+
+### 2. Render (api + worker)
+1. Push the repo to GitHub. In Render: **New → Blueprint**, select the repo; it reads [`render.yaml`](render.yaml)
+   and creates `wellthyfy-crm-api` (Node web service) and `wellthyfy-crm-worker` (Docker background worker, includes
+   `pg_dump` 17 for backups).
+2. Fill the `wellthyfy-crm` environment group (all `sync: false` values): `DATABASE_URL`, `SUPABASE_*`,
+   `TITAN_USER`, `TITAN_PASSWORD`, `RESEND_API_KEY`, `RESEND_FROM`, `ALERT_EMAIL_TO`, `ANTHROPIC_API_KEY`,
+   `SERPER_API_KEY`, `ZEROBOUNCE_API_KEY`, `SENTRY_DSN`, `APP_URL` (the Vercel URL — used for CORS),
+   `API_URL`. Leave `EMAIL_MODE=dry_run` for now.
+3. The API runs `npm run db:migrate` as its pre-deploy command and exposes `GET /health`. Keep the worker at **one**
+   instance.
+
+### 3. Vercel (web)
+1. **New Project** → import the repo → **Root Directory: `apps/web`** (framework Vite). [`apps/web/vercel.json`](apps/web/vercel.json)
+   installs and builds from the monorepo root and serves the SPA with security headers.
+2. Environment variables (Production): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_URL` (the Render API
+   URL), `VITE_SENTRY_DSN` (optional).
+3. Add your domain (e.g. `crm.wellthyfy.in`) and set the same URL as `APP_URL` on Render and Site URL in Supabase.
+
+### 4. Environment variables
+Every variable is documented in [`.env.example`](.env.example). Server-only secrets (`SUPABASE_SERVICE_ROLE_KEY`,
+`DATABASE_URL`, `TITAN_PASSWORD`, `RESEND_API_KEY`, `ANTHROPIC_API_KEY`, `SERPER_API_KEY`, `ZEROBOUNCE_API_KEY`) go
+only on Render — never on Vercel (only `VITE_*` values reach the browser).
+
+### 5. Switching EMAIL_MODE to live
+Only after the first-day checklist below passes in `dry_run`:
+1. Settings → **Test Titan connection** shows IMAP pass and SMTP pass (and Drafts/Sent folders found).
+2. Approve one email to an internal test address; confirm the draft appears in Titan webmail → Drafts.
+3. On Render set `EMAIL_MODE=live` in the env group (both services restart). Settings shows "LIVE email".
+4. Start with Settings → daily cap 5 and hourly cap 2 for the first week, then raise gradually (Titan limits apply).
+
+### 6. First-day checklist
+- [ ] `https://<api>/health` returns `ok`; worker logs show `worker started` and `heartbeat` every minute.
+- [ ] Admin can sign in; invite a researcher and a viewer; check each sees the right menu.
+- [ ] Settings: signature, opt-out line, privacy notice URL, send window/days, caps, AI model and monthly limits.
+- [ ] Replace the 5 "SAMPLE – edit me" programmes with real ones; review the 6 templates.
+- [ ] Import the reference workbook (SAMPLE rows are skipped) or add 10–20 real organisations with verified contacts.
+- [ ] Titan connection test passes; SPF/DKIM/DMARC verified for `wellthyfy.in` (see PROGRESS.md "manual setup").
+- [ ] One live email to an internal address: arrives, is in Titan Sent, draft removed, reply detected within 5 minutes,
+      replying "STOP" opts the contact out.
+- [ ] Next morning: digest arrives at `ALERT_EMAIL_TO`; a backup file exists in Storage → `wellthyfy-crm/backups/`.

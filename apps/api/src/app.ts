@@ -3,6 +3,7 @@ import express, { Router } from 'express';
 import type { Db, JobPublisher, Logger, ServerEnv } from '@wellthyfy/shared/server';
 import { requireAuth, type TokenVerifier } from './lib/auth';
 import { errorHandler } from './lib/errors';
+import { rateLimit, securityHeaders } from './lib/hardening';
 import { requestLogger } from './lib/http';
 import type { Services } from './lib/services';
 import { healthRoutes } from './routes/health';
@@ -26,6 +27,7 @@ export function createApp(deps: AppDeps) {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
+  app.use(securityHeaders(deps.env.NODE_ENV === 'production'));
 
   const origins = deps.env.APP_URL.split(',').map((o) => o.trim().replace(/\/$/, ''));
   app.use(
@@ -42,6 +44,7 @@ export function createApp(deps: AppDeps) {
   app.use(healthRoutes(full));
 
   const api = Router();
+  api.use(rateLimit({ windowMs: 60_000, max: deps.env.NODE_ENV === 'test' ? 100_000 : 600 }));
   api.use(requireAuth(deps.db, deps.verifyToken));
   registerApiRoutes(api, full);
   app.use('/api', api);

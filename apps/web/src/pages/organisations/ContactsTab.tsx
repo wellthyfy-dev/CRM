@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Ban, CheckCircle2, Mail, Pencil, Plus, Star } from 'lucide-react';
+import { Ban, CheckCircle2, Mail, Pencil, Plus, Star, Trash2 } from 'lucide-react';
 import { ConfirmDialog, EmptyState, ErrorMessage, ExternalLink, IstDate } from '@/components/common';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -123,11 +123,23 @@ export function ContactsTab({ detail }: { detail: OrganisationDetail }) {
   const orgId = detail.organisation.id;
   const qc = useQueryClient();
   const toast = useToast();
-  const { canEdit } = useRole();
+  const { canEdit, isAdmin } = useRole();
+  const [deleting, setDeleting] = React.useState<ContactJ | null>(null);
+  const [confirmText, setConfirmText] = React.useState('');
   const [editing, setEditing] = React.useState<ContactJ | 'new' | null>(null);
   const [optingOut, setOptingOut] = React.useState<ContactJ | null>(null);
   const [composeFor, setComposeFor] = React.useState<ContactJ | null>(null);
 
+  const deleteData = useMutation({
+    mutationFn: (id: string) => api(`/api/contacts/${id}/delete-data`, { body: { confirm: 'DELETE' } }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['organisation', orgId] });
+      setDeleting(null);
+      setConfirmText('');
+      toast('Contact data deleted');
+    },
+    onError: (e) => toast((e as Error).message, 'error'),
+  });
   const action = useMutation({
     mutationFn: ({ id, path }: { id: string; path: string }) =>
       api(`/api/contacts/${id}/${path}`, { body: {} }),
@@ -242,6 +254,16 @@ export function ContactsTab({ detail }: { detail: OrganisationDetail }) {
                         <Ban />
                       </Button>
                     )}
+                    {isAdmin && !c.anonymisedAt && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        title="Delete contact data"
+                        onClick={() => setDeleting(c)}
+                      >
+                        <Trash2 />
+                      </Button>
+                    )}
                   </div>
                 </TD>
               </TR>
@@ -265,6 +287,27 @@ export function ContactsTab({ detail }: { detail: OrganisationDetail }) {
         busy={action.isPending}
         onConfirm={() => optingOut && action.mutate({ id: optingOut.id, path: 'opt-out' })}
       />
+      <ConfirmDialog
+        open={!!deleting}
+        onOpenChange={(o) => {
+          if (!o) {
+            setDeleting(null);
+            setConfirmText('');
+          }
+        }}
+        title="Delete this contact's personal data?"
+        description="For data-protection requests. Name, email, phone and source are erased; their email bodies and replies are redacted; the address is kept only as a hash on the permanent opt-out list. This cannot be undone."
+        confirmLabel="Delete data"
+        destructive
+        busy={confirmText !== 'DELETE' || deleteData.isPending}
+        onConfirm={() => deleting && deleteData.mutate(deleting.id)}
+      >
+        <Input
+          placeholder="Type DELETE to confirm"
+          value={confirmText}
+          onChange={(e) => setConfirmText(e.target.value)}
+        />
+      </ConfirmDialog>
       {composeFor && (
         <ComposeEmailDialog
           open={!!composeFor}

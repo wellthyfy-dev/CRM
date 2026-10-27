@@ -50,10 +50,12 @@ await registerJobs(
     fetchPages: (website) => fetchSitePages(website),
     parseMail,
     downloadAttachment: (key) => fileStore.get(key),
+    files: fileStore,
     searcher: serperSearcher(env.SERPER_API_KEY),
     now: () => new Date(),
     randomGapSeconds: () => 60 + Math.floor(Math.random() * 121),
     state,
+    captureError: env.SENTRY_DSN ? (err, tags) => Sentry.captureException(err, { tags }) : undefined,
   },
   ALL_JOBS,
 );

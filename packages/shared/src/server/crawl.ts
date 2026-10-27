@@ -1,5 +1,6 @@
 import type { FetchedPage } from '../ai/research';
 import { normaliseDomain } from '../email';
+import { assertPublicUrl } from './url-guard';
 
 // Fetches an organisation's home page plus up to 6 relevant same-domain pages, as plain text.
 
@@ -86,20 +87,32 @@ export function pickRelevantLinks(links: string[], domain: string, max = 6): str
   return [...new Set(scored.map((x) => x.l))].slice(0, max);
 }
 
+type UrlGuard = (url: string) => Promise<unknown>;
+
 async function fetchHtml(
   url: string,
   fetchImpl: typeof fetch,
+  guard: UrlGuard,
 ): Promise<{ url: string; html: string } | null> {
   try {
-    const res = await fetchImpl(url, {
-      redirect: 'follow',
-      signal: AbortSignal.timeout(15_000),
-      headers: { 'User-Agent': 'WellthyfyOutreachCRM/1.0 (+https://wellthyfy.in)', Accept: 'text/html' },
-    });
-    if (!res.ok || !(res.headers.get('content-type') ?? '').includes('html')) return null;
+    // Follow redirects manually so every hop passes the SSRF guard.
+    let current = url;
+    let res: Response | null = null;
+    for (let hop = 0; hop < 5; hop++) {
+      await guard(current);
+      res = await fetchImpl(current, {
+        redirect: 'manual',
+        signal: AbortSignal.timeout(15_000),
+        headers: { 'User-Agent': 'WellthyfyOutreachCRM/1.0 (+https://wellthyfy.in)', Accept: 'text/html' },
+      });
+      const location = res.status >= 300 && res.status < 400 ? res.headers.get('location') : null;
+      if (!location) break;
+      current = new URL(location, current).toString();
+    }
+    if (!res || !res.ok || !(res.headers.get('content-type') ?? '').includes('html')) return null;
     const buf = await res.arrayBuffer();
     if (buf.byteLength > MAX_PAGE_BYTES) return null;
-    return { url: res.url || url, html: new TextDecoder().decode(buf) };
+    return { url: current, html: new TextDecoder().decode(buf) };
   } catch {
     return null;
   }
@@ -108,8 +121,9 @@ async function fetchHtml(
 export async function fetchSitePages(
   website: string,
   fetchImpl: typeof fetch = fetch,
+  guard: UrlGuard = assertPublicUrl,
 ): Promise<FetchedPage[]> {
-  const home = await fetchHtml(website, fetchImpl);
+  const home = await fetchHtml(website, fetchImpl, guard);
   if (!home) return [];
   const domain = normaliseDomain(home.url) ?? normaliseDomain(website);
   const pages: FetchedPage[] = [];
@@ -126,7 +140,7 @@ export async function fetchSitePages(
   for (const link of pickRelevantLinks(extractLinks(home.html, home.url), domain)) {
     if (total >= MAX_TOTAL_CHARS) break;
     if (pages.some((p) => p.url === link)) continue;
-    const page = await fetchHtml(link, fetchImpl);
+    const page = await fetchHtml(link, fetchImpl, guard);
     if (page) add(page.url, page.html);
   }
   return pages;

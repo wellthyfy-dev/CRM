@@ -12,24 +12,20 @@ afterAll(async () => t.handle.close());
 async function orgWithVerifiedContact() {
   const slug = Math.random().toString(36).slice(2);
   const org = (
-    await t
-      .as('researcher')
-      .post('/api/organisations', {
-        name: `Acme ${slug}`,
-        orgType: 'company',
-        segment: 'fmcg',
-        website: `https://${slug}.co.in`,
-      })
+    await t.as('researcher').post('/api/organisations', {
+      name: `Acme ${slug}`,
+      orgType: 'company',
+      segment: 'fmcg',
+      website: `https://${slug}.co.in`,
+    })
   ).body;
   const c = (
-    await t
-      .as('researcher')
-      .post(`/api/organisations/${org.id}/contacts`, {
-        fullName: 'Ms. L&D Head',
-        designation: 'L&D Head',
-        email: `ld@${slug}.co.in`,
-        sourceUrl: `https://${slug}.co.in/team`,
-      })
+    await t.as('researcher').post(`/api/organisations/${org.id}/contacts`, {
+      fullName: 'Ms. L&D Head',
+      designation: 'L&D Head',
+      email: `ld@${slug}.co.in`,
+      sourceUrl: `https://${slug}.co.in/team`,
+    })
   ).body;
   await t.as('researcher').post(`/api/contacts/${c.id}/verify`, {});
   return { org, c };
@@ -82,14 +78,12 @@ describe('discovery', () => {
   it('requires Serper to start a run; "add selected" creates research_needed organisations', async () => {
     expect(
       (
-        await t
-          .as('researcher')
-          .post('/api/discovery', {
-            orgType: 'company',
-            segment: 'pharma',
-            state: 'Tamil Nadu',
-            maxResults: 5,
-          })
+        await t.as('researcher').post('/api/discovery', {
+          orgType: 'company',
+          segment: 'pharma',
+          state: 'Tamil Nadu',
+          maxResults: 5,
+        })
       ).body.error,
     ).toMatch(/not configured/);
     const [run] = await t.handle.db
