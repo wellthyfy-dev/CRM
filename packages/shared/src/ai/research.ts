@@ -67,14 +67,20 @@ export function filterVerbatimContacts(
   return { kept, dropped };
 }
 
-/** Pricing per million tokens (USD). Unknown models are costed at the higher Sonnet rate. */
+/** Pricing per million tokens (USD; Gemini output includes thinking tokens). Unknown models use the highest rate. */
 export const AI_PRICING_USD_PER_MTOK: Record<string, { input: number; output: number }> = {
+  'gemini-3.5-flash-lite': { input: 0.3, output: 2.5 },
+  'gemini-3.8-flash': { input: 1.5, output: 7.5 },
   'claude-haiku-5-5': { input: 0.1, output: 0.5 },
   'claude-sonnet-5-5': { input: 2, output: 10 },
 };
 
+const FALLBACK_PRICING = Object.values(AI_PRICING_USD_PER_MTOK).reduce((a, b) =>
+  b.output > a.output ? b : a,
+);
+
 export function aiCostInr(model: string, tokensIn: number, tokensOut: number, usdToInr = 88): number {
-  const p = AI_PRICING_USD_PER_MTOK[model] ?? AI_PRICING_USD_PER_MTOK['claude-sonnet-5-5']!;
+  const p = AI_PRICING_USD_PER_MTOK[model] ?? FALLBACK_PRICING;
   const usd = (tokensIn * p.input + tokensOut * p.output) / 1_000_000;
   return Math.round(usd * usdToInr * 10000) / 10000;
 }

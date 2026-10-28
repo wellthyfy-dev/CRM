@@ -9,6 +9,7 @@ import {
   startOfIstMonth,
 } from '@wellthyfy/shared';
 import {
+  aiApiKey,
   discoveryRuns,
   getSettings,
   logActivity,
@@ -149,7 +150,7 @@ export function discoveryRoutes({ db, publisher, env, now }: RouteDeps): Router 
         type: 'organisation_created',
         payload: { source: 'discovery', runId: run.id, query: c.query },
       });
-      if (body.queueResearch && env.ANTHROPIC_API_KEY) {
+      if (body.queueResearch && aiApiKey(env)) {
         await publisher.send(QUEUES.aiResearch, { organisationId: org!.id, userId: user.id });
       }
     }

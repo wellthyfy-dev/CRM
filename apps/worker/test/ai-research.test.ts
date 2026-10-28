@@ -33,7 +33,7 @@ beforeEach(async () => {
     },
   ];
   fakeAi.researchResult = {
-    model: 'claude-haiku-5-5',
+    model: 'gemini-3.5-flash-lite',
     tokensIn: 12000,
     tokensOut: 1500,
     output: {
@@ -75,7 +75,7 @@ describe('AI research', () => {
     const [row] = await h.handle.db.select().from(research).where(eq(research.id, r.researchId!));
     expect(row).toMatchObject({
       aiGenerated: true,
-      aiModel: 'claude-haiku-5-5',
+      aiModel: 'gemini-3.5-flash-lite',
       tokensIn: 12000,
       tokensOut: 1500,
     });
@@ -88,8 +88,8 @@ describe('AI research', () => {
     expect(out.candidateContacts.map((c) => c.name)).toEqual(['Dr. A. Ravi']);
     expect(out.droppedContacts).toBe(1);
     expect(out.websiteEvidence).toHaveLength(1);
-    // (12000 × 0.10 + 1500 × 0.50) / 1e6 USD × 88
-    expect(row!.costInr).toBeCloseTo(0.1716, 4);
+    // (12000 × 0.30 + 1500 × 2.50) / 1e6 USD × 88
+    expect(row!.costInr).toBeCloseTo(0.6468, 4);
     expect(await h.handle.db.select().from(aiUsage)).toHaveLength(1);
   });
 

@@ -22,6 +22,7 @@ export const REDACT_PATHS = [
   'TITAN_PASSWORD',
   'SUPABASE_SERVICE_ROLE_KEY',
   'ANTHROPIC_API_KEY',
+  'GEMINI_API_KEY',
 ];
 
 export function createLogger(name: string, level = process.env.LOG_LEVEL ?? 'info') {

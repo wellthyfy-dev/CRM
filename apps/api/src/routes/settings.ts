@@ -3,6 +3,7 @@ import { desc, eq } from 'drizzle-orm';
 import { settingsUpdateSchema } from '@wellthyfy/shared';
 import {
   activities,
+  aiApiKey,
   effectiveOptOutLine,
   getSettings,
   logActivity,
@@ -27,7 +28,8 @@ export function settingsRoutes({ db, env, services }: RouteDeps): Router {
         titan: titanConfigured(env),
         titanUser: env.TITAN_USER ?? null,
         resend: !!env.RESEND_API_KEY && !!env.ALERT_EMAIL_TO,
-        anthropic: !!env.ANTHROPIC_API_KEY,
+        ai: !!aiApiKey(env),
+        aiProvider: env.AI_PROVIDER,
         serper: !!env.SERPER_API_KEY,
         zerobounce: !!env.ZEROBOUNCE_API_KEY,
         storage: !!env.SUPABASE_URL && !!env.SUPABASE_SERVICE_ROLE_KEY,

@@ -48,15 +48,17 @@ export const serverEnvSchema = z.object({
   RESEND_API_KEY: optional,
   RESEND_FROM: optional,
   ALERT_EMAIL_TO: optional,
+  AI_PROVIDER: z.enum(['gemini', 'anthropic']).default('gemini'),
+  GEMINI_API_KEY: optional,
   ANTHROPIC_API_KEY: optional,
-  AI_MODEL_DEFAULT: z.string().default('claude-haiku-5-5'),
-  AI_MODEL_OPTIONAL: z.string().default('claude-sonnet-5-5'),
+  AI_MODEL_DEFAULT: z.string().default('gemini-3.5-flash-lite'),
+  AI_MODEL_OPTIONAL: z.string().default('gemini-3.8-flash'),
   USD_TO_INR: z.coerce.number().positive().default(88),
   SERPER_API_KEY: optional,
   ZEROBOUNCE_API_KEY: optional,
   SENTRY_DSN: optional,
   SENTRY_ENVIRONMENT: z.string().default('development'),
-  APP_URL: z.string().default('http://localhost:5173'),
+  APP_URL: z.string().default('http://localhost:3000'),
   API_URL: z.string().default('http://localhost:4000'),
   PORT: z.coerce.number().int().positive().default(4000),
   LOG_LEVEL: z.string().default('info'),
@@ -64,6 +66,15 @@ export const serverEnvSchema = z.object({
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
+
+/** API key for the selected AI_PROVIDER (undefined = AI not configured). */
+export function aiApiKey(env: Pick<ServerEnv, 'AI_PROVIDER' | 'GEMINI_API_KEY' | 'ANTHROPIC_API_KEY'>) {
+  return env.AI_PROVIDER === 'gemini' ? env.GEMINI_API_KEY : env.ANTHROPIC_API_KEY;
+}
+
+export function aiKeyName(env: Pick<ServerEnv, 'AI_PROVIDER'>): string {
+  return env.AI_PROVIDER === 'gemini' ? 'GEMINI_API_KEY' : 'ANTHROPIC_API_KEY';
+}
 
 export function readServerEnv(source: NodeJS.ProcessEnv = process.env): ServerEnv {
   // Empty strings in .env mean "unset"; strip them so defaults apply.
@@ -83,6 +94,7 @@ export const SECRET_ENV_KEYS = [
   'DATABASE_URL',
   'TITAN_PASSWORD',
   'RESEND_API_KEY',
+  'GEMINI_API_KEY',
   'ANTHROPIC_API_KEY',
   'SERPER_API_KEY',
   'ZEROBOUNCE_API_KEY',

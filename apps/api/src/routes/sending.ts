@@ -8,6 +8,8 @@ import {
   startOfIstHour,
 } from '@wellthyfy/shared';
 import {
+  aiApiKey,
+  aiKeyName,
   aiSpendThisMonth,
   checkSendGate,
   contacts,
@@ -232,7 +234,7 @@ export function sendingRoutes(deps: RouteDeps): Router {
     res.json({
       spentInr: await aiSpendThisMonth(db, now()),
       limitInr: Number(s.aiMonthlyLimitInr),
-      configured: !!env.ANTHROPIC_API_KEY,
+      configured: !!aiApiKey(env),
     });
   });
 
@@ -240,7 +242,7 @@ export function sendingRoutes(deps: RouteDeps): Router {
     const user = currentUser(req);
     const org = await getOrg(db, idParam(req));
     if (!org.website) throw badRequest('Add the official website first');
-    if (!env.ANTHROPIC_API_KEY) throw badRequest('AI is not configured (ANTHROPIC_API_KEY)');
+    if (!aiApiKey(env)) throw badRequest(`AI is not configured (${aiKeyName(env)})`);
     const s = await getSettings(db);
     if ((await aiSpendThisMonth(db, now())) >= Number(s.aiMonthlyLimitInr)) {
       throw badRequest('Monthly AI limit reached — raise it in Settings');

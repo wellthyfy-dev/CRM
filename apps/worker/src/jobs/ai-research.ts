@@ -27,7 +27,7 @@ export async function runAiResearch(
   const [org] = await db.select().from(organisations).where(eq(organisations.id, organisationId));
   if (!org) return { researchId: null, error: 'Organisation not found' };
   if (!org.website) return fail('Organisation has no website');
-  if (!deps.ai.configured) return fail('ANTHROPIC_API_KEY is not configured');
+  if (!deps.ai.configured) return fail('AI is not configured (no API key for AI_PROVIDER)');
   const s = await getSettings(db);
   if (!(await aiBudgetAvailable(db, s, now()))) return fail('Monthly AI limit reached');
 

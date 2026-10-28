@@ -105,10 +105,10 @@ export function SettingsPage() {
             <Badge variant={integ.emailMode === 'live' ? 'danger' : 'secondary'}>
               EMAIL_MODE: {String(integ.emailMode)}
             </Badge>
-            {(['titan', 'zerobounce', 'anthropic', 'serper', 'resend', 'storage', 'sentry'] as const).map(
+            {(['titan', 'zerobounce', 'ai', 'serper', 'resend', 'storage', 'sentry'] as const).map(
               (k) => (
                 <Badge key={k} variant={integ[k] ? 'success' : 'outline'}>
-                  {k}: {integ[k] ? 'configured' : 'not set'}
+                  {k === 'ai' ? `ai (${String(integ.aiProvider)})` : k}: {integ[k] ? 'configured' : 'not set'}
                 </Badge>
               ),
             )}
