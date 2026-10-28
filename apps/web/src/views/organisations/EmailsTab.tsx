@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { EmailStatusBadge, EmptyState, IstDate } from '@/components/common';
 import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table';
@@ -30,7 +30,7 @@ export function EmailsTab({ detail }: { detail: OrganisationDetail }) {
         {emails.data?.items.map((e) => (
           <TR key={e.id}>
             <TD>
-              <Link className="text-primary hover:underline" to={`/emails/${e.id}`}>
+              <Link className="text-primary hover:underline" href={`/emails/${e.id}`}>
                 {e.subject}
               </Link>
               {e.gateFailureReason && <div className="text-xs text-red-700">{e.gateFailureReason}</div>}

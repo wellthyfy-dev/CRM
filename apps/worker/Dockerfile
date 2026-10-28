@@ -27,4 +27,4 @@ RUN npm run build -w @wellthyfy/worker
 
 ENV NODE_ENV=production TZ=Asia/Kolkata PG_DUMP_PATH=/usr/bin/pg_dump
 USER node
-CMD ["node", "apps/worker/dist/index.js"]
+CMD ["node", "--enable-source-maps", "apps/worker/dist/index.js"]

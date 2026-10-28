@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import {
   Bar,
@@ -79,7 +79,7 @@ function FollowUpList({ due }: { due: 'today' | 'overdue' }) {
         )}
         {q.data?.items.map((o) => (
           <div key={o.id} className="flex items-center justify-between gap-2">
-            <Link to={`/organisations/${o.id}`} className="truncate text-primary hover:underline">
+            <Link href={`/organisations/${o.id}`} className="truncate text-primary hover:underline">
               {o.name}
             </Link>
             <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
@@ -89,7 +89,7 @@ function FollowUpList({ due }: { due: 'today' | 'overdue' }) {
           </div>
         ))}
         {(q.data?.total ?? 0) > 10 && (
-          <Link className="text-xs text-primary hover:underline" to={`/organisations?due=${due}`}>
+          <Link className="text-xs text-primary hover:underline" href={`/organisations?due=${due}`}>
             View all {q.data?.total}
           </Link>
         )}
@@ -130,17 +130,20 @@ export function DashboardPage() {
       </div>
       <div className="flex flex-wrap gap-3 text-sm">
         {isAdmin && (
-          <Link to="/approvals" className="rounded-md border bg-card px-3 py-2 hover:bg-accent">
+          <Link href="/approvals" className="rounded-md border bg-card px-3 py-2 hover:bg-accent">
             {data.emails.pendingApproval} awaiting approval
           </Link>
         )}
-        <Link to="/replies" className="rounded-md border bg-card px-3 py-2 hover:bg-accent">
+        <Link href="/replies" className="rounded-md border bg-card px-3 py-2 hover:bg-accent">
           {data.replies.unhandled} replies need attention
         </Link>
-        <Link to="/organisations?due=today" className="rounded-md border bg-card px-3 py-2 hover:bg-accent">
+        <Link href="/organisations?due=today" className="rounded-md border bg-card px-3 py-2 hover:bg-accent">
           {data.followUps.dueToday} follow-ups due today
         </Link>
-        <Link to="/organisations?due=overdue" className="rounded-md border bg-card px-3 py-2 hover:bg-accent">
+        <Link
+          href="/organisations?due=overdue"
+          className="rounded-md border bg-card px-3 py-2 hover:bg-accent"
+        >
           {data.followUps.overdue} overdue
         </Link>
       </div>

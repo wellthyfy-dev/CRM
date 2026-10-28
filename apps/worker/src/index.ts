@@ -1,7 +1,7 @@
 import http from 'node:http';
 import * as Sentry from '@sentry/node';
 import {
-  anthropicProvider,
+  aiProviderFromEnv,
   createDb,
   createLogger,
   createMailTransport,
@@ -23,7 +23,13 @@ const env = readServerEnv();
 const logger = createLogger('worker', env.LOG_LEVEL);
 
 if (env.SENTRY_DSN) {
-  Sentry.init({ dsn: env.SENTRY_DSN, environment: env.SENTRY_ENVIRONMENT, tracesSampleRate: 0 });
+  Sentry.init({
+    dsn: env.SENTRY_DSN,
+    environment: env.SENTRY_ENVIRONMENT,
+    release: process.env.RENDER_GIT_COMMIT,
+    tracesSampleRate: 0,
+    initialScope: { tags: { service: 'worker' } },
+  });
 }
 if (isPgliteUrl(env.DATABASE_URL)) {
   logger.error(
@@ -45,7 +51,7 @@ await registerJobs(
     publisher: bossPublisher(boss),
     mail: createMailTransport(env, logger),
     verifier: zeroBounceVerifier(env.ZEROBOUNCE_API_KEY),
-    ai: anthropicProvider(env.ANTHROPIC_API_KEY),
+    ai: aiProviderFromEnv(env),
     notifier: resendNotifier(env),
     fetchPages: (website) => fetchSitePages(website),
     parseMail,

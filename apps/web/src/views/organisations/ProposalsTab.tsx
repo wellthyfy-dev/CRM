@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileDown, Mail, Plus } from 'lucide-react';
 import { EmptyState, ErrorMessage, IstDate } from '@/components/common';
@@ -45,7 +46,7 @@ export async function openProposalPdf(id: string) {
 export function ProposalActions({ p }: { p: ProposalRow }) {
   const qc = useQueryClient();
   const toast = useToast();
-  const navigate = useNavigate();
+  const router = useRouter();
   const { canEdit } = useRole();
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ['proposals'] });
@@ -56,7 +57,7 @@ export function ProposalActions({ p }: { p: ProposalRow }) {
     onSuccess: (e) => {
       refresh();
       toast('Email draft with the PDF created — submit it for approval');
-      navigate(`/emails/${e.id}`);
+      router.push(`/emails/${e.id}`);
     },
     onError: (e) => toast((e as Error).message, 'error'),
   });
@@ -79,7 +80,7 @@ export function ProposalActions({ p }: { p: ProposalRow }) {
       )}
       {p.emailId && (
         <Button size="sm" variant="ghost" asChild>
-          <Link to={`/emails/${p.emailId}`}>Email ({p.emailStatus})</Link>
+          <Link href={`/emails/${p.emailId}`}>Email ({p.emailStatus})</Link>
         </Button>
       )}
       {canEdit && ['draft', 'sent'].includes(p.status) && (

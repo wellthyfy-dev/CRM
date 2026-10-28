@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Eye, EyeOff } from 'lucide-react';
 import { SENDER } from '@wellthyfy/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,16 +11,19 @@ import { supabaseConfigured } from '@/lib/supabase';
 
 export function LoginPage() {
   const { me, session, signIn, signOut, error: authError, loading } = useAuth();
-  const location = useLocation();
+  const router = useRouter();
+  const from = safeRedirect(useSearchParams().get('from'));
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [showPassword, setShowPassword] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  if (me) {
-    const from = (location.state as { from?: string } | null)?.from ?? '/';
-    return <Navigate to={from} replace />;
-  }
+  React.useEffect(() => {
+    if (me) router.replace(from);
+  }, [me, from, router]);
+
+  if (me) return null;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -44,7 +48,8 @@ export function LoginPage() {
         <CardContent>
           {!supabaseConfigured && (
             <p className="mb-3 rounded-md bg-amber-100 p-2 text-xs text-amber-900">
-              Supabase is not configured: set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.
+              Supabase is not configured: set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in
+              .env.
             </p>
           )}
           {session && !loading && authError && (
@@ -66,13 +71,25 @@ export function LoginPage() {
               />
             </Field>
             <Field label="Password">
-              <Input
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted-foreground hover:text-foreground"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </Field>
             {error && <p className="text-xs text-destructive">{error}</p>}
             <Button type="submit" disabled={busy}>
@@ -84,4 +101,9 @@ export function LoginPage() {
       </Card>
     </div>
   );
+}
+
+/** Only same-app paths are allowed as a post-login target (no open redirects via ?from=). */
+function safeRedirect(from: string | null): string {
+  return from && from.startsWith('/') && !from.startsWith('//') ? from : '/';
 }

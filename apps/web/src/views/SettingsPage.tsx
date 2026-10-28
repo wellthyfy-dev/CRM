@@ -105,13 +105,11 @@ export function SettingsPage() {
             <Badge variant={integ.emailMode === 'live' ? 'danger' : 'secondary'}>
               EMAIL_MODE: {String(integ.emailMode)}
             </Badge>
-            {(['titan', 'zerobounce', 'ai', 'serper', 'resend', 'storage', 'sentry'] as const).map(
-              (k) => (
-                <Badge key={k} variant={integ[k] ? 'success' : 'outline'}>
-                  {k === 'ai' ? `ai (${String(integ.aiProvider)})` : k}: {integ[k] ? 'configured' : 'not set'}
-                </Badge>
-              ),
-            )}
+            {(['titan', 'zerobounce', 'ai', 'serper', 'resend', 'storage', 'sentry'] as const).map((k) => (
+              <Badge key={k} variant={integ[k] ? 'success' : 'outline'}>
+                {k === 'ai' ? `ai (${String(integ.aiProvider)})` : k}: {integ[k] ? 'configured' : 'not set'}
+              </Badge>
+            ))}
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <Button variant="outline" onClick={() => test.mutate()} disabled={test.isPending}>

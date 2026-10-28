@@ -1,4 +1,6 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import * as React from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { LogOut } from 'lucide-react';
 import { SENDER } from '@wellthyfy/shared';
 import { Badge } from '@/components/ui/badge';
@@ -7,8 +9,9 @@ import { useAuth } from '@/lib/auth';
 import { navFor } from '@/lib/nav';
 import { cn } from '@/lib/utils';
 
-export function AppShell() {
+export function AppShell({ children }: { children: React.ReactNode }) {
   const { me, signOut, emailMode } = useAuth();
+  const pathname = usePathname();
   if (!me) return null;
   return (
     <div className="flex min-h-screen">
@@ -19,20 +22,17 @@ export function AppShell() {
         </div>
         <nav className="flex-1 overflow-y-auto p-2" aria-label="Main">
           {navFor(me.role).map((item) => (
-            <NavLink
+            <Link
               key={item.to}
-              to={item.to}
-              end={item.to === '/'}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-2 rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-                  isActive && 'bg-accent font-medium text-accent-foreground',
-                )
-              }
+              href={item.to}
+              className={cn(
+                'flex items-center gap-2 rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                isNavActive(item.to, pathname) && 'bg-accent font-medium text-accent-foreground',
+              )}
             >
               <item.icon className="h-4 w-4" />
               {item.label}
-            </NavLink>
+            </Link>
           ))}
         </nav>
         <div className="border-t p-3 text-xs">
@@ -54,11 +54,14 @@ export function AppShell() {
           </Button>
         </div>
       </aside>
-      <main className="min-w-0 flex-1 p-6">
-        <Outlet />
-      </main>
+      <main className="min-w-0 flex-1 p-6">{children}</main>
     </div>
   );
+}
+
+function isNavActive(to: string, pathname: string): boolean {
+  if (to === '/') return pathname === '/';
+  return pathname === to || pathname.startsWith(`${to}/`);
 }
 
 export function PageHeader({

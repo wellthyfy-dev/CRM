@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { PageHeader } from '@/components/layout/AppShell';
 import { EmptyState, IstDate } from '@/components/common';
@@ -49,7 +49,7 @@ export function ProposalsPage() {
             {rows.map((p) => (
               <TR key={p.id}>
                 <TD>
-                  <Link className="text-primary hover:underline" to={`/organisations/${p.organisationId}`}>
+                  <Link className="text-primary hover:underline" href={`/organisations/${p.organisationId}`}>
                     {p.recordId} {p.organisationName}
                   </Link>
                   <div className="text-xs text-muted-foreground">{p.contactName}</div>

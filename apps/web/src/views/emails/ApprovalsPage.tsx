@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Pencil, XCircle } from 'lucide-react';
 import { PageHeader } from '@/components/layout/AppShell';
@@ -95,7 +95,7 @@ export function ApprovalsPage() {
                       })
                     }
                   />
-                  <Link to={`/emails/${item.email.id}`} className="font-semibold hover:underline">
+                  <Link href={`/emails/${item.email.id}`} className="font-semibold hover:underline">
                     {item.email.subject}
                   </Link>
                   {item.email.followUpNo > 0 && (
@@ -115,7 +115,7 @@ export function ApprovalsPage() {
                     <CheckCircle2 /> Approve
                   </Button>
                   <Button size="sm" variant="outline" asChild>
-                    <Link to={`/emails/${item.email.id}`}>
+                    <Link href={`/emails/${item.email.id}`}>
                       <Pencil /> Edit
                     </Link>
                   </Button>
@@ -126,7 +126,7 @@ export function ApprovalsPage() {
               </div>
               <div className="text-sm">
                 <KeyValue label="Organisation">
-                  <Link className="hover:underline" to={`/organisations/${item.organisation.id}`}>
+                  <Link className="hover:underline" href={`/organisations/${item.organisation.id}`}>
                     {item.organisation.recordId} {item.organisation.name}
                   </Link>
                 </KeyValue>

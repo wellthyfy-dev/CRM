@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ErrorMessage } from '@/components/common';
 import { Button } from '@/components/ui/button';
@@ -33,7 +33,7 @@ export function ComposeEmailDialog({
 }) {
   const qc = useQueryClient();
   const toast = useToast();
-  const navigate = useNavigate();
+  const router = useRouter();
   const [templateId, setTemplateId] = React.useState<string | undefined>(undefined);
   const [subject, setSubject] = React.useState('');
   const [body, setBody] = React.useState('');
@@ -69,7 +69,7 @@ export function ComposeEmailDialog({
       void qc.invalidateQueries({ queryKey: ['organisation', organisation.id] });
       toast(submit ? 'Draft saved and submitted for approval' : 'Draft saved');
       onOpenChange(false);
-      navigate(`/emails/${email.id}`);
+      router.push(`/emails/${email.id}`);
     },
   });
 

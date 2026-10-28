@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Pause, Play, Send } from 'lucide-react';
 import { PageHeader } from '@/components/layout/AppShell';
@@ -151,7 +151,7 @@ export function QueuePage() {
             {d?.queued.map((e) => (
               <TR key={e.id}>
                 <TD>
-                  <Link to={`/emails/${e.id}`} className="text-primary hover:underline">
+                  <Link href={`/emails/${e.id}`} className="text-primary hover:underline">
                     {e.subject}
                   </Link>
                   {e.followUpNo > 0 && (

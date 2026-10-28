@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   IMPORT_FIELD_LABELS,
@@ -252,7 +252,7 @@ export function ImportPage() {
                       {r.organisationId ? (
                         <Link
                           className="text-primary hover:underline"
-                          to={`/organisations/${r.organisationId}`}
+                          href={`/organisations/${r.organisationId}`}
                         >
                           {r.recordId ?? ''} {r.name}
                         </Link>

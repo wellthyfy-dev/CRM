@@ -20,7 +20,15 @@ const env = readServerEnv();
 const logger = createLogger('api', env.LOG_LEVEL);
 
 if (env.SENTRY_DSN) {
-  Sentry.init({ dsn: env.SENTRY_DSN, environment: env.SENTRY_ENVIRONMENT, tracesSampleRate: 0.1 });
+  Sentry.init({
+    dsn: env.SENTRY_DSN,
+    environment: env.SENTRY_ENVIRONMENT,
+    // Render sets the deployed commit; it ties each issue to the release that introduced it.
+    release: process.env.RENDER_GIT_COMMIT,
+    tracesSampleRate: 0.1,
+    // api and worker share one Sentry project; the tag tells them apart.
+    initialScope: { tags: { service: 'api' } },
+  });
 }
 
 const handle = await createDb(env.DATABASE_URL);

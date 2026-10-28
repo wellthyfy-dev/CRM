@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
@@ -41,7 +41,7 @@ function Card({ card, draggable }: { card: PipelineCard; draggable: boolean }) {
       data-testid="pipeline-card"
     >
       <Link
-        to={`/organisations/${card.id}`}
+        href={`/organisations/${card.id}`}
         className="font-medium text-primary hover:underline"
         onPointerDown={(e) => e.stopPropagation()}
       >

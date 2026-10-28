@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ORG_TYPE_LABELS,
@@ -65,7 +65,7 @@ export function OrganisationFormDialog({
 }) {
   const [form, setForm] = React.useState<FormState>(() => initial(organisation));
   const [dupe, setDupe] = React.useState<{ id: string; recordId: string; name: string } | null>(null);
-  const navigate = useNavigate();
+  const router = useRouter();
   const qc = useQueryClient();
   const toast = useToast();
   const users = useUserDirectory();
@@ -99,7 +99,7 @@ export function OrganisationFormDialog({
       void qc.invalidateQueries({ queryKey: ['organisation', org.id] });
       toast(organisation ? 'Organisation updated' : `Created ${org.recordId}`);
       onOpenChange(false);
-      if (!organisation) navigate(`/organisations/${org.id}`);
+      if (!organisation) router.push(`/organisations/${org.id}`);
     },
   });
 
@@ -158,7 +158,7 @@ export function OrganisationFormDialog({
               <button
                 type="button"
                 className="underline"
-                onClick={() => navigate(`/organisations/${dupe.id}`)}
+                onClick={() => router.push(`/organisations/${dupe.id}`)}
               >
                 Open existing record
               </button>

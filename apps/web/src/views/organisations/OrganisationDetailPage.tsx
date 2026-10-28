@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Link, useParams } from 'react-router-dom';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Pencil } from 'lucide-react';
 import { istDateKey, ORG_TYPE_LABELS, STAGE_LABELS, STAGES, type Stage } from '@wellthyfy/shared';
@@ -124,7 +125,7 @@ function FollowUpControl({ orgId, value }: { orgId: string; value: string | null
 }
 
 export function OrganisationDetailPage() {
-  const { id = '' } = useParams();
+  const { id = '' } = useParams<{ id: string }>();
   const { data, error, isLoading } = useOrganisation(id);
   const { canEdit, isAdmin } = useRole();
   const [editing, setEditing] = React.useState(false);
@@ -149,7 +150,7 @@ export function OrganisationDetailPage() {
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-xs text-muted-foreground">
-            <Link to="/organisations" className="hover:underline">
+            <Link href="/organisations" className="hover:underline">
               Organisations
             </Link>{' '}
             / <span className="font-mono">{org.recordId}</span>

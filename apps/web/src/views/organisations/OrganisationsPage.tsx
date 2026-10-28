@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import Link from 'next/link';
+import { useSearchParamsState } from '@/lib/router';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { ArrowDown, ArrowUp, Download, Plus, Upload } from 'lucide-react';
 import {
@@ -38,7 +39,7 @@ const FILTER_KEYS = [
 ] as const;
 
 export function OrganisationsPage() {
-  const [params, setParams] = useSearchParams();
+  const [params, setParams] = useSearchParamsState();
   const { canEdit } = useRole();
   const [creating, setCreating] = React.useState(false);
   const [search, setSearch] = React.useState(params.get('q') ?? '');
@@ -103,7 +104,7 @@ export function OrganisationsPage() {
             {canEdit && (
               <>
                 <Button variant="outline" asChild>
-                  <Link to="/organisations/import">
+                  <Link href="/organisations/import">
                     <Upload /> Import
                   </Link>
                 </Button>
@@ -233,7 +234,7 @@ export function OrganisationsPage() {
               <TR key={o.id}>
                 <TD className="font-mono text-xs">{o.recordId}</TD>
                 <TD>
-                  <Link to={`/organisations/${o.id}`} className="font-medium text-primary hover:underline">
+                  <Link href={`/organisations/${o.id}`} className="font-medium text-primary hover:underline">
                     {o.name}
                   </Link>
                   {o.doNotContact && (

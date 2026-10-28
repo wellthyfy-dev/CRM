@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import {
   formatIst,
   SEGMENT_LABELS,
@@ -68,7 +68,7 @@ export function ErrorMessage({ error }: { error: unknown }) {
       {details?.kind === 'organisation' && details.existingId && (
         <>
           {' '}
-          <Link className="underline" to={`/organisations/${details.existingId}`}>
+          <Link className="underline" href={`/organisations/${details.existingId}`}>
             Open existing record
           </Link>
         </>
@@ -76,7 +76,7 @@ export function ErrorMessage({ error }: { error: unknown }) {
       {details?.kind === 'contact' && details.organisationId && (
         <>
           {' '}
-          <Link className="underline" to={`/organisations/${details.organisationId}`}>
+          <Link className="underline" href={`/organisations/${details.organisationId}`}>
             Open existing organisation
           </Link>
         </>

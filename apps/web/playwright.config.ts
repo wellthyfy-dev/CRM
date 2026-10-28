@@ -40,14 +40,14 @@ export default defineConfig({
       },
     },
     {
-      command: 'npx vite --port 5174 --strictPort',
+      command: 'npx next dev --port 5174',
       url: E2E_WEB_URL,
       reuseExistingServer: false,
       timeout: 120_000,
       env: {
-        VITE_API_URL: E2E_API_URL,
-        VITE_SUPABASE_URL: 'http://localhost:54321',
-        VITE_SUPABASE_ANON_KEY: 'e2e-anon-key',
+        NEXT_PUBLIC_API_URL: E2E_API_URL,
+        NEXT_PUBLIC_SUPABASE_URL: 'http://localhost:54321',
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: 'e2e-anon-key',
       },
     },
   ],

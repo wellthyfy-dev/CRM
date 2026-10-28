@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import Link from 'next/link';
+import { useSearchParamsState } from '@/lib/router';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { EMAIL_STATUSES } from '@wellthyfy/shared';
 import { PageHeader } from '@/components/layout/AppShell';
@@ -10,7 +11,7 @@ import { api, qs } from '@/lib/api';
 import type { EmailRow, Paged } from '@/lib/types';
 
 export function EmailsPage() {
-  const [params, setParams] = useSearchParams();
+  const [params, setParams] = useSearchParamsState();
   const status = params.get('status') ?? '';
   const page = Number(params.get('page') ?? 1);
   const [q, setQ] = React.useState(params.get('q') ?? '');
@@ -71,7 +72,7 @@ export function EmailsPage() {
             {query.data?.items.map((e) => (
               <TR key={e.id}>
                 <TD>
-                  <Link className="text-primary hover:underline" to={`/emails/${e.id}`}>
+                  <Link className="text-primary hover:underline" href={`/emails/${e.id}`}>
                     {e.subject}
                   </Link>
                   {e.gateFailureReason && <div className="text-xs text-red-700">{e.gateFailureReason}</div>}
@@ -80,7 +81,7 @@ export function EmailsPage() {
                   )}
                 </TD>
                 <TD className="text-xs">
-                  <Link className="hover:underline" to={`/organisations/${e.organisationId}`}>
+                  <Link className="hover:underline" href={`/organisations/${e.organisationId}`}>
                     {e.organisationName}
                   </Link>
                 </TD>

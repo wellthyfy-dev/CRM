@@ -1,4 +1,5 @@
-import { Link, useSearchParams } from 'react-router-dom';
+import Link from 'next/link';
+import { useSearchParamsState } from '@/lib/router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { REPLY_CLASSIFICATIONS, type ReplyClassification } from '@wellthyfy/shared';
 import { PageHeader } from '@/components/layout/AppShell';
@@ -28,7 +29,7 @@ const VARIANT: Record<ReplyClassification, BadgeProps['variant']> = {
 };
 
 export function RepliesPage() {
-  const [params, setParams] = useSearchParams();
+  const [params, setParams] = useSearchParamsState();
   const qc = useQueryClient();
   const toast = useToast();
   const { canEdit } = useRole();
@@ -108,7 +109,7 @@ export function RepliesPage() {
                 </TD>
                 <TD className="text-xs">
                   {r.organisationId ? (
-                    <Link to={`/organisations/${r.organisationId}`} className="hover:underline">
+                    <Link href={`/organisations/${r.organisationId}`} className="hover:underline">
                       {r.organisationName}
                     </Link>
                   ) : (
@@ -137,7 +138,7 @@ export function RepliesPage() {
                   {r.summary && <div className="font-medium">{r.summary}</div>}
                   <div className="text-muted-foreground">{r.snippet}</div>
                   {r.emailId && (
-                    <Link to={`/emails/${r.emailId}`} className="text-primary hover:underline">
+                    <Link href={`/emails/${r.emailId}`} className="text-primary hover:underline">
                       Re: {r.emailSubject}
                     </Link>
                   )}

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
 import {
@@ -258,7 +258,7 @@ export function DiscoveryPage() {
                       <TD>
                         <div className="font-medium">{c.name}</div>
                         {c.existingOrganisationId && (
-                          <Link to={`/organisations/${c.existingOrganisationId}`}>
+                          <Link href={`/organisations/${c.existingOrganisationId}`}>
                             <Badge variant={c.added ? 'success' : 'secondary'}>
                               {c.added ? 'added' : 'already in CRM'}
                             </Badge>

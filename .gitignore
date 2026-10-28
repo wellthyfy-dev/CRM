@@ -7,10 +7,12 @@ coverage/
 !.env.example
 *.log
 .DS_Store
-.vite/
+.next/
+next-env.d.ts
 playwright-report/
 test-results/
 apps/web/e2e/.data/
 .pglite/
 *.tsbuildinfo
 .storage/
+.claude/settings.local.json

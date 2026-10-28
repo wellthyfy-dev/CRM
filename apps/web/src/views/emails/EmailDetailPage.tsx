@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Link, useParams } from 'react-router-dom';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, CheckCircle2, Send, XCircle } from 'lucide-react';
 import {
@@ -47,7 +48,7 @@ export function GatePanel({ gate }: { gate: EmailDetail['gate'] }) {
 }
 
 export function EmailDetailPage() {
-  const { id = '' } = useParams();
+  const { id = '' } = useParams<{ id: string }>();
   const qc = useQueryClient();
   const toast = useToast();
   const { canEdit, isAdmin } = useRole();
@@ -100,7 +101,7 @@ export function EmailDetailPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-xs text-muted-foreground">
-            <Link className="hover:underline" to={`/organisations/${organisation.id}`}>
+            <Link className="hover:underline" href={`/organisations/${organisation.id}`}>
               {organisation.recordId} {organisation.name}
             </Link>
           </div>
@@ -257,7 +258,7 @@ export function EmailDetailPage() {
                 {data.thread.map((t) => (
                   <Link
                     key={t.id}
-                    to={`/emails/${t.id}`}
+                    href={`/emails/${t.id}`}
                     className={t.id === email.id ? 'font-semibold' : 'hover:underline'}
                   >
                     {t.kind.replace(/_/g, ' ')} · {t.status} · <IstDate value={t.sentAt} />
