@@ -13,36 +13,30 @@ afterAll(async () => t.handle.close());
 describe('delete contact data (data-protection request)', () => {
   it('anonymises the contact, redacts emails/replies, scrubs logs and keeps a permanent hashed opt-out', async () => {
     const org = (
-      await t
-        .as('researcher')
-        .post('/api/organisations', {
-          name: 'DP College',
-          orgType: 'college_university',
-          segment: 'arts_science',
-          website: 'https://dp.ac.in',
-        })
+      await t.as('researcher').post('/api/organisations', {
+        name: 'DP College',
+        orgType: 'college_university',
+        segment: 'arts_science',
+        website: 'https://dp.ac.in',
+      })
     ).body;
     const c = (
-      await t
-        .as('researcher')
-        .post(`/api/organisations/${org.id}/contacts`, {
-          fullName: 'Dr. Private Person',
-          email: 'private@dp.ac.in',
-          sourceUrl: 'https://dp.ac.in/x',
-        })
+      await t.as('researcher').post(`/api/organisations/${org.id}/contacts`, {
+        fullName: 'Dr. Private Person',
+        email: 'private@dp.ac.in',
+        sourceUrl: 'https://dp.ac.in/x',
+      })
     ).body;
     await t.as('researcher').post(`/api/contacts/${c.id}/verify`, {});
     const e = (await t.as('researcher').post('/api/emails', { organisationId: org.id, contactId: c.id }))
       .body;
-    await t.handle.db
-      .insert(replies)
-      .values({
-        organisationId: org.id,
-        contactId: c.id,
-        fromEmail: 'private@dp.ac.in',
-        snippet: 'Hi, Dr. Private here',
-        receivedAt: new Date(),
-      });
+    await t.handle.db.insert(replies).values({
+      organisationId: org.id,
+      contactId: c.id,
+      fromEmail: 'private@dp.ac.in',
+      snippet: 'Hi, Dr. Private here',
+      receivedAt: new Date(),
+    });
 
     expect(
       (await t.as('researcher').post(`/api/contacts/${c.id}/delete-data`, { confirm: 'DELETE' })).status,

@@ -33,12 +33,16 @@ envVarGroups:
         sync: false
       - key: ALERT_EMAIL_TO
         sync: false
+      - key: AI_PROVIDER
+        value: gemini
+      - key: GEMINI_API_KEY
+        sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: AI_MODEL_DEFAULT
-        value: claude-haiku-5-5
+        value: gemini-3.5-flash-lite
       - key: AI_MODEL_OPTIONAL
-        value: claude-sonnet-5-5
+        value: gemini-3.8-flash
       - key: USD_TO_INR
         value: '88'
       - key: SERPER_API_KEY
@@ -62,7 +66,7 @@ services:
     plan: starter
     buildCommand: npm ci --include=dev && npm run build -w @wellthyfy/api
     preDeployCommand: npm run db:migrate
-    startCommand: node apps/api/dist/index.js
+    startCommand: node --enable-source-maps apps/api/dist/index.js
     healthCheckPath: /health
     envVars:
       - fromGroup: wellthyfy-crm

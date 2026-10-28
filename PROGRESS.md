@@ -32,7 +32,7 @@
 - `npm install && npm run lint && npm run typecheck && npm test && npm run build` — all pass (73 tests).
 - Tests use **PGlite** (in-process Postgres) with the real migrations, so no database server is needed.
 - With a Supabase project: fill `.env`, `npm run db:migrate && npm run db:seed`, `npm run create-admin -- …`,
-  `npm run dev`, sign in at http://localhost:5173.
+  `npm run dev`, sign in at http://localhost:3000.
 
 ### Decisions / defaults (Step 0)
 - **Gate stages.** The gate requires `status = 'approved'` when an admin queues an email and `status = 'queued'`
@@ -276,9 +276,10 @@ Run in **dry_run** first, then repeat the email items in **live** to an internal
   and keep `daily_send_cap` below it.
 - **Resend**: account, a verified sending domain or subdomain for staff alerts (e.g. `notify.wellthyfy.in`), API key,
   `RESEND_FROM`, and `ALERT_EMAIL_TO` (staff addresses only).
-- **Anthropic**: API key with billing; also set a spend limit in the Anthropic Console besides the in-app limit.
+- **Gemini** (current AI provider): API key from Google AI Studio with billing; set a budget in Google Cloud besides
+  the in-app limit. **Anthropic** (if `AI_PROVIDER=anthropic`): API key with billing; also set a spend limit in the Anthropic Console besides the in-app limit.
 - **Serper** (serper.dev) and **ZeroBounce** API keys with credits.
-- **Sentry**: project(s) for web, api and worker → `SENTRY_DSN` / `VITE_SENTRY_DSN`.
+- **Sentry**: project(s) for web, api and worker → `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN`.
 - **Render** (Blueprint from `render.yaml`) and **Vercel** (root `apps/web`) connected to the GitHub repository.
 
 **DNS checks for `wellthyfy.in`**
@@ -296,3 +297,23 @@ Run in **dry_run** first, then repeat the email items in **live** to an internal
 - Replace the sample programmes, review templates and signature, publish a privacy notice page and set its URL in
   Settings (it is added to every opt-out line).
 - Keep the worker at one instance and `EMAIL_MODE=dry_run` until the checklist above passes.
+
+## Step 5 — Next.js web app, Gemini AI
+
+### What was built
+- **apps/web moved from Vite + React Router to Next.js 16 (App Router) + React 19.** Routes live in `src/app`
+  (`(app)/` = signed-in area whose layout does the auth/role check and renders the shell; `login/`). The page
+  components moved from `src/pages` to `src/views` (so Next does not treat them as Pages Router routes) and are
+  unchanged apart from `next/link` / `next/navigation`. `src/lib/router.ts` keeps the `[params, setParams]`
+  search-param API. The app is still a client-rendered SPA talking to the Express API; api and worker are unchanged.
+- Browser env vars renamed `VITE_*` → `NEXT_PUBLIC_*`; `next.config.ts` loads the repo-root `.env` and sets the
+  security headers previously in `vercel.json`. React is 19 across the repo (api's `@react-pdf/renderer` too).
+- **AI provider switch**: `AI_PROVIDER=gemini` (default) uses `@google/genai` with JSON-schema structured output
+  (same Zod schemas, same verbatim-contact re-check); `anthropic` still works. Settings shows the active provider.
+
+### Decisions / defaults (Step 5)
+- Default Gemini models `gemini-3.5-flash-lite` (cheap, like Haiku) and optional `gemini-3.8-flash`; pricing for cost
+  tracking uses Google's standard rates (3.8 Flash at the post-introductory $1.50 / $7.50 per MTok, so estimates err
+  high). Unknown models are costed at the most expensive known rate.
+- After login the app returns to `?from=` (same-origin paths only) instead of router state.
+- Vitest stays the unit-test runner (it uses Vite internally; the app itself no longer does).

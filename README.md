@@ -11,7 +11,7 @@ and companies (Tamil Nadu first, then all of India): discover → research → v
 
 | Path | What |
 |---|---|
-| `apps/web` | React 18 + Vite + TypeScript, React Router, TanStack Query, Tailwind + shadcn/ui |
+| `apps/web` | Next.js 16 (App Router) + React 19 + TypeScript, TanStack Query, Tailwind + shadcn/ui |
 | `apps/api` | Express + TypeScript REST API (`/api/*`), Supabase JWT auth, Zod validation |
 | `apps/worker` | pg-boss background worker (sending, IMAP drafts/replies, follow-ups, AI, digests, backups) |
 | `packages/shared` | Shared constants, Zod schemas, template renderer, **send gate**, Drizzle schema + migrations |
@@ -27,7 +27,7 @@ cp .env.example .env        # then fill in values (see below)
 npm run db:migrate          # apply committed migrations to DATABASE_URL
 npm run db:seed             # settings row, 6 templates, sample programmes, storage bucket
 npm run create-admin -- you@wellthyfy.in 'a-long-password' "Your Name"
-npm run dev                 # web :5173, api :4000, worker
+npm run dev                 # web :3000, api :4000, worker
 ```
 
 Useful scripts (root):
@@ -48,14 +48,14 @@ seeded on boot). The worker needs real Postgres (pg-boss), so in this mode jobs 
 ## Creating the Supabase project
 
 1. Create a project at [supabase.com](https://supabase.com) (region: Mumbai `ap-south-1`).
-2. **Project Settings → API**: copy the Project URL → `SUPABASE_URL` and `VITE_SUPABASE_URL`; the `anon` key →
-   `SUPABASE_ANON_KEY` and `VITE_SUPABASE_ANON_KEY`; the `service_role` key → `SUPABASE_SERVICE_ROLE_KEY` (server only).
+2. **Project Settings → API**: copy the Project URL → `SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_URL`; the `anon` key →
+   `SUPABASE_ANON_KEY` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`; the `service_role` key → `SUPABASE_SERVICE_ROLE_KEY` (server only).
    If your project still uses the legacy JWT secret, you may set `SUPABASE_JWT_SECRET`; otherwise the API verifies
    tokens with the project's JWKS automatically.
 3. **Project Settings → Database → Connection string**: use the **direct** connection or the **session pooler**
    (port 5432) for `DATABASE_URL`. Do not use the transaction pooler (6543) — pg-boss needs session features.
 4. **Authentication → Providers → Email**: enable email + password; **disable "Allow new users to sign up"**
-   (invite-only). Under **URL Configuration** set the Site URL to your web URL (e.g. `http://localhost:5173`).
+   (invite-only). Under **URL Configuration** set the Site URL to your web URL (e.g. `http://localhost:3000`).
 5. Run `npm run db:migrate` and `npm run db:seed`. The migration enables row-level security on every table with no
    policies, so the browser's anon key cannot read data directly — all data goes through the API.
 
@@ -118,23 +118,24 @@ Supabase** (Mumbai). Everything below uses `dry_run` until the first-day checkli
    and creates `wellthyfy-crm-api` (Node web service) and `wellthyfy-crm-worker` (Docker background worker, includes
    `pg_dump` 17 for backups).
 2. Fill the `wellthyfy-crm` environment group (all `sync: false` values): `DATABASE_URL`, `SUPABASE_*`,
-   `TITAN_USER`, `TITAN_PASSWORD`, `RESEND_API_KEY`, `RESEND_FROM`, `ALERT_EMAIL_TO`, `ANTHROPIC_API_KEY`,
+   `TITAN_USER`, `TITAN_PASSWORD`, `RESEND_API_KEY`, `RESEND_FROM`, `ALERT_EMAIL_TO`, `AI_PROVIDER`, `GEMINI_API_KEY`,
    `SERPER_API_KEY`, `ZEROBOUNCE_API_KEY`, `SENTRY_DSN`, `APP_URL` (the Vercel URL — used for CORS),
    `API_URL`. Leave `EMAIL_MODE=dry_run` for now.
 3. The API runs `npm run db:migrate` as its pre-deploy command and exposes `GET /health`. Keep the worker at **one**
    instance.
 
 ### 3. Vercel (web)
-1. **New Project** → import the repo → **Root Directory: `apps/web`** (framework Vite). [`apps/web/vercel.json`](apps/web/vercel.json)
-   installs and builds from the monorepo root and serves the SPA with security headers.
-2. Environment variables (Production): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_URL` (the Render API
-   URL), `VITE_SENTRY_DSN` (optional).
+1. **New Project** → import the repo → **Root Directory: `apps/web`** (framework Next.js). [`apps/web/vercel.json`](apps/web/vercel.json)
+   installs and builds from the monorepo root; security headers are set in `apps/web/next.config.ts`.
+2. Environment variables (Production): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+   `NEXT_PUBLIC_API_URL` (the Render API URL), `NEXT_PUBLIC_SENTRY_DSN` (optional), and `SENTRY_AUTH_TOKEN`
+   (optional; uploads browser source maps to the `wellthyfy-web` Sentry project during the build).
 3. Add your domain (e.g. `crm.wellthyfy.in`) and set the same URL as `APP_URL` on Render and Site URL in Supabase.
 
 ### 4. Environment variables
 Every variable is documented in [`.env.example`](.env.example). Server-only secrets (`SUPABASE_SERVICE_ROLE_KEY`,
-`DATABASE_URL`, `TITAN_PASSWORD`, `RESEND_API_KEY`, `ANTHROPIC_API_KEY`, `SERPER_API_KEY`, `ZEROBOUNCE_API_KEY`) go
-only on Render — never on Vercel (only `VITE_*` values reach the browser).
+`DATABASE_URL`, `TITAN_PASSWORD`, `RESEND_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `SERPER_API_KEY`, `ZEROBOUNCE_API_KEY`) go
+only on Render — never on Vercel (only `NEXT_PUBLIC_*` values reach the browser).
 
 ### 5. Switching EMAIL_MODE to live
 Only after the first-day checklist below passes in `dry_run`:

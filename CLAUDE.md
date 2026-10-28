@@ -26,7 +26,7 @@ Segment playbook (decision-makers → pitch):
 ## TECH STACK (do not change without asking)
 
 - Monorepo with npm workspaces:
-  - apps/web — React 18 + Vite + TypeScript, React Router, TanStack Query, Tailwind CSS + shadcn/ui, dnd-kit (pipeline board), Recharts (dashboard)
+  - apps/web — Next.js 16 (App Router, client components) + React 19 + TypeScript, TanStack Query, Tailwind CSS + shadcn/ui, dnd-kit (pipeline board), Recharts (dashboard)
   - apps/api — Node.js 22 LTS + Express + TypeScript, Zod validation
   - apps/worker — Node.js 22 + TypeScript background worker
   - packages/shared — shared types, Zod schemas, constants, template renderer, send gate
@@ -38,7 +38,7 @@ Segment playbook (decision-makers → pitch):
   - IMAP: imapflow, imap.titan.email, port 993, secure true
   - Credentials only from env (TITAN_USER, TITAN_PASSWORD); never stored in DB, never logged, never sent to the frontend.
 - Internal staff notifications only (digest, reply alerts): Resend. NEVER email prospects via Resend (its policy forbids cold outreach).
-- AI: @anthropic-ai/sdk. Default model `claude-haiku-5-5`; optional `claude-sonnet-5-5` selectable in Settings. Model names from env/settings, not hard-coded.
+- AI: provider chosen by AI_PROVIDER. Currently `gemini` (@google/genai, GEMINI_API_KEY): default `gemini-3.5-flash-lite`, optional `gemini-3.8-flash` selectable in Settings. `anthropic` (@anthropic-ai/sdk, `claude-haiku-5-5` / `claude-sonnet-5-5`) remains supported. Model names from env/settings, not hard-coded.
 - Lead search: Serper API. Email verification: ZeroBounce API.
 - PDF proposals: @react-pdf/renderer, files in Supabase Storage.
 - Testing: Vitest, Supertest, Playwright. Lint/format: ESLint + Prettier. CI: GitHub Actions (lint, typecheck, test).
