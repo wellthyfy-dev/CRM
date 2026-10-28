@@ -1,5 +1,5 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
-import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
+import { createRemoteJWKSet, decodeProtectedHeader, jwtVerify, type JWTPayload } from 'jose';
 import { eq } from 'drizzle-orm';
 import type { Role } from '@wellthyfy/shared';
 import { profiles, type Db, type ServerEnv } from '@wellthyfy/shared/server';
@@ -24,33 +24,35 @@ declare global {
 export type TokenVerifier = (token: string) => Promise<JWTPayload & { sub: string }>;
 
 /**
- * Verify Supabase access tokens. Uses the legacy HS256 secret when SUPABASE_JWT_SECRET is set, otherwise the
- * project's JWKS (asymmetric signing keys). Audience must be "authenticated".
+ * Verify Supabase access tokens. HS256 tokens use the legacy SUPABASE_JWT_SECRET; asymmetric tokens (ES256/RS256,
+ * Supabase's current signing keys) use the project's JWKS. A project can have both, so pick by the token's `alg`.
+ * Audience must be "authenticated".
  */
 export function createTokenVerifier(
   env: Pick<ServerEnv, 'SUPABASE_JWT_SECRET' | 'SUPABASE_URL'>,
 ): TokenVerifier {
   const opts = { audience: 'authenticated' };
-  if (env.SUPABASE_JWT_SECRET) {
-    const key = new TextEncoder().encode(env.SUPABASE_JWT_SECRET);
-    return async (token) => {
-      const { payload } = await jwtVerify(token, key, { ...opts, algorithms: ['HS256'] });
-      if (!payload.sub) throw new Error('Token has no subject');
-      return payload as JWTPayload & { sub: string };
+  const secret = env.SUPABASE_JWT_SECRET ? new TextEncoder().encode(env.SUPABASE_JWT_SECRET) : null;
+  const jwks = env.SUPABASE_URL
+    ? createRemoteJWKSet(new URL(`${env.SUPABASE_URL.replace(/\/$/, '')}/auth/v1/.well-known/jwks.json`))
+    : null;
+  if (!secret && !jwks) {
+    return async () => {
+      throw new Error('Auth is not configured (set SUPABASE_URL or SUPABASE_JWT_SECRET)');
     };
   }
-  if (env.SUPABASE_URL) {
-    const jwks = createRemoteJWKSet(
-      new URL(`${env.SUPABASE_URL.replace(/\/$/, '')}/auth/v1/.well-known/jwks.json`),
-    );
-    return async (token) => {
-      const { payload } = await jwtVerify(token, jwks, opts);
-      if (!payload.sub) throw new Error('Token has no subject');
-      return payload as JWTPayload & { sub: string };
-    };
-  }
-  return async () => {
-    throw new Error('Auth is not configured (set SUPABASE_URL or SUPABASE_JWT_SECRET)');
+  return async (token) => {
+    const { alg } = decodeProtectedHeader(token);
+    let payload: JWTPayload;
+    if (alg === 'HS256') {
+      if (!secret) throw new Error('HS256 token but SUPABASE_JWT_SECRET is not set');
+      ({ payload } = await jwtVerify(token, secret, { ...opts, algorithms: ['HS256'] }));
+    } else {
+      if (!jwks) throw new Error('Asymmetric token but SUPABASE_URL is not set');
+      ({ payload } = await jwtVerify(token, jwks, { ...opts, algorithms: ['ES256', 'RS256'] }));
+    }
+    if (!payload.sub) throw new Error('Token has no subject');
+    return payload as JWTPayload & { sub: string };
   };
 }
 
