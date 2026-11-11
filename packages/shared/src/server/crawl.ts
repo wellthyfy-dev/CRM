@@ -27,6 +27,8 @@ const MAX_PAGE_BYTES = 1_500_000;
 /** ~20k tokens at ~4 chars/token. */
 export const MAX_TOTAL_CHARS = 80_000;
 const PER_PAGE_CHARS = 16_000;
+/** Pages are at most 1.5 MB of HTML; the text kept for contact extraction is bounded too. */
+const MAX_FULL_TEXT_CHARS = 400_000;
 
 const ENTITIES: Record<string, string> = {
   amp: '&',
@@ -38,13 +40,33 @@ const ENTITIES: Record<string, string> = {
   '#39': "'",
 };
 
+/** Cloudflare "email protection": the first byte is an XOR key for the rest. */
+export function decodeCfEmail(hex: string): string {
+  if (!/^(?:[0-9a-f]{2}){2,}$/i.test(hex)) return '';
+  const key = parseInt(hex.slice(0, 2), 16);
+  let out = '';
+  for (let i = 2; i < hex.length; i += 2) out += String.fromCharCode(parseInt(hex.slice(i, i + 2), 16) ^ key);
+  return out;
+}
+
 export function htmlToText(html: string): { title: string; text: string } {
   const title = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(html)?.[1]?.trim() ?? '';
   const text = html
     .replace(/<(script|style|noscript|svg|iframe)[\s\S]*?<\/\1>/gi, ' ')
     .replace(/<!--[\s\S]*?-->/g, ' ')
+    // Cloudflare-protected addresses: <span class="__cf_email__" data-cfemail="…">[email protected]</span> and
+    // <a href="/cdn-cgi/l/email-protection#…">. Decoding them gives the address the browser would show.
+    .replace(
+      /<([a-z]+)[^>]*data-cfemail=["']([0-9a-f]+)["'][^>]*>[\s\S]*?<\/\1>/gi,
+      (_m, _tag, hex: string) => ` ${decodeCfEmail(hex)} `,
+    )
+    .replace(
+      /<a[^>]+href=["'][^"']*\/cdn-cgi\/l\/email-protection#([0-9a-f]+)["'][^>]*>/gi,
+      (_m, hex: string) => ` ${decodeCfEmail(hex)} `,
+    )
     // Keep mailto addresses visible: they are often only in href.
     .replace(/<a[^>]+href=["']mailto:([^"'?]+)[^>]*>/gi, ' $1 ')
+    .replace(/<a[^>]+href=["']tel:([^"']+)[^>]*>/gi, ' $1 ')
     .replace(/<(br|p|div|li|tr|h[1-6]|section|article|td)[^>]*>/gi, '\n')
     .replace(/<[^>]+>/g, ' ')
     .replace(
@@ -79,7 +101,9 @@ export function pickRelevantLinks(links: string[], domain: string, max = 6): str
     .filter((l) => normaliseDomain(l) === domain)
     .map((l) => {
       const path = new URL(l).pathname.toLowerCase();
-      const score = RELEVANT.reduce((s, k) => s + (path.includes(k) ? 1 : 0), 0);
+      // Contact pages carry the addresses Discovery needs, so they always make the cut.
+      const score =
+        RELEVANT.reduce((s, k) => s + (path.includes(k) ? 1 : 0), 0) + (path.includes('contact') ? 3 : 0);
       return { l, score, depth: path.split('/').filter(Boolean).length };
     })
     .filter((x) => x.score > 0)
@@ -133,7 +157,7 @@ export async function fetchSitePages(
     const clipped = text.slice(0, Math.min(PER_PAGE_CHARS, MAX_TOTAL_CHARS - total));
     if (!clipped) return;
     total += clipped.length;
-    pages.push({ url, title, text: clipped });
+    pages.push({ url, title, text: clipped, fullText: text.slice(0, MAX_FULL_TEXT_CHARS) });
   };
   add(home.url, home.html);
   if (!domain) return pages;

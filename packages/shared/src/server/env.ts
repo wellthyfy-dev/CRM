@@ -43,6 +43,8 @@ export const serverEnvSchema = z.object({
   SUPABASE_STORAGE_BUCKET: z.string().default('wellthyfy-crm'),
   TITAN_USER: optional,
   TITAN_PASSWORD: optional,
+  TITAN_SMTP_HOST: z.string().default('smtp.titan.email'),
+  TITAN_IMAP_HOST: z.string().default('imap.titan.email'),
   TITAN_FROM_NAME: z.string().default('Selvaganapathy V. | Wellthyfy Lifestyle Ventures'),
   EMAIL_MODE: z.enum(['dry_run', 'live']).default('dry_run'),
   RESEND_API_KEY: optional,

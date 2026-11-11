@@ -84,7 +84,7 @@ drafts — cannot approve or send) · **viewer** (read-only).
 | Value | Behaviour |
 |---|---|
 | `dry_run` (default) | SMTP is replaced by a logger; IMAP writes (drafts, Sent copies, draft deletes) are skipped and logged. Emails are marked sent with a `dryRun` flag in the activity log so the workflow can be tested end to end. |
-| `live` | Real sends through Titan SMTP (`smtp.titan.email:465`) and IMAP (`imap.titan.email:993`). Only switch on in production after the first-day checklist. |
+| `live` | Real sends through the mailbox's SMTP (`TITAN_SMTP_HOST`:465) and IMAP (`TITAN_IMAP_HOST`:993) — GoDaddy Professional Email uses `smtpout.secureserver.net` / `imap.secureserver.net`, direct Titan `smtp.titan.email` / `imap.titan.email`. Only switch on in production after the first-day checklist. |
 
 Development and tests never send real email. Titan credentials come only from `TITAN_USER` / `TITAN_PASSWORD`.
 
@@ -93,7 +93,7 @@ Development and tests never send real email. Titan credentials come only from `T
 Organisations & contacts (search, filters, CSV, duplicate blocking, verification, permanent opt-out) · xlsx/csv import
 of the reference workbook · manual and AI research (verbatim-only contacts) · versioned templates with live preview ·
 drafting → submit → admin approval → Titan draft → queued send (caps, IST window, random gaps, gate re-check) ·
-follow-ups drafted for approval · read-only reply detection with rule + AI classification · ZeroBounce · discovery via
+follow-ups drafted for approval · read-only reply detection with rule + AI classification · optional ZeroBounce · discovery (finds website emails/phones and drafts the first email) via
 Serper · proposal PDFs · pipeline board · dashboard and reports · staff digest/alerts via Resend · nightly backups ·
 data-deletion requests. See [PROGRESS.md](PROGRESS.md) for details and [SECURITY_REVIEW.md](SECURITY_REVIEW.md).
 

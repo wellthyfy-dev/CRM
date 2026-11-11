@@ -2,6 +2,7 @@ import type { JobDefinition } from '../runtime';
 import { aiResearchJob } from './ai-research';
 import { backupJob } from './backup';
 import { discoveryJob } from './discovery';
+import { discoveryContactsJob } from './discovery-contacts';
 import { followUpsJob } from './follow-ups';
 import { heartbeatJob } from './heartbeat';
 import { imapDraftJob } from './imap-draft';
@@ -21,5 +22,6 @@ export const ALL_JOBS: JobDefinition[] = [
   digestJob,
   replyAlertJob,
   discoveryJob,
+  discoveryContactsJob,
   backupJob,
 ];

@@ -48,8 +48,8 @@ export function LoginPage() {
         <CardContent>
           {!supabaseConfigured && (
             <p className="mb-3 rounded-md bg-amber-100 p-2 text-xs text-amber-900">
-              Supabase is not configured: set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in
-              .env.
+              Supabase is not configured: set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (or
+              NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) in .env locally, or in Vercel env vars and redeploy.
             </p>
           )}
           {session && !loading && authError && (

@@ -8,7 +8,9 @@ An internal web app for Wellthyfy Lifestyle Ventures Pvt. Ltd. to manage trainin
 
 Region: Tamil Nadu first, then all of India. Both colleges and companies are targeted.
 
-Workflow: discover organisation → research official website → identify decision-maker → verify contact → generate personalised email → human approval → send from Titan Mail → detect replies → follow up → meeting → proposal → training confirmed.
+Workflow: discover organisation → (Discovery "Add") read the official website for email addresses/phones → save them as contacts (auto-verified, source page recorded) → one email to the best contact goes to Approvals → human approval → send from Titan Mail → detect replies → follow up → meeting → proposal → training confirmed. AI research and manual contacts remain available.
+
+Discovery contact finder (business decisions, 2026-10-30): addresses/phones are extracted deterministically (no AI) from the organisation's own website, including Cloudflare-protected addresses; when the site has addresses on its own domain only those are saved (drops alumni/testimonial addresses); they are saved verified on behalf of the user who clicked Add, with the page URL as source_url; one email per organisation, to the best role for the segment playbook, is created as pending_approval. ZeroBounce is optional (disabled when ZEROBOUNCE_API_KEY is empty).
 
 Sender identity (signature and templates):
 Selvaganapathy V. | MBA – Marketing | Corporate Trainer & Sales Mentor
@@ -34,8 +36,8 @@ Segment playbook (decision-makers → pitch):
 - Auth: Supabase Auth (email + password, invite-only). Web logs in with supabase-js; API verifies the Supabase JWT on every request and loads the role from `profiles`.
 - Job queue: pg-boss on the same Postgres (no Redis).
 - Outreach email: Titan Mail ONLY
-  - SMTP: nodemailer, smtp.titan.email, port 465, secure true
-  - IMAP: imapflow, imap.titan.email, port 993, secure true
+  - SMTP: nodemailer, port 465, secure true; host TITAN_SMTP_HOST (default smtp.titan.email; the ceo@wellthyfy.in mailbox is GoDaddy Professional Email powered by Titan → smtpout.secureserver.net)
+  - IMAP: imapflow, port 993, secure true; host TITAN_IMAP_HOST (default imap.titan.email; GoDaddy → imap.secureserver.net)
   - Credentials only from env (TITAN_USER, TITAN_PASSWORD); never stored in DB, never logged, never sent to the frontend.
 - Internal staff notifications only (digest, reply alerts): Resend. NEVER email prospects via Resend (its policy forbids cold outreach).
 - AI: provider chosen by AI_PROVIDER. Currently `gemini` (@google/genai, GEMINI_API_KEY): default `gemini-3.5-flash-lite`, optional `gemini-3.8-flash` selectable in Settings. `anthropic` (@anthropic-ai/sdk, `claude-haiku-5-5` / `claude-sonnet-5-5`) remains supported. Model names from env/settings, not hard-coded.

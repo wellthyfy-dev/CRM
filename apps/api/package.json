@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch --clear-screen=false src/index.ts",
+    "dev": "tsx watch --use-system-ca --clear-screen=false src/index.ts",
     "build": "tsup",
     "start": "node --enable-source-maps dist/index.js",
     "typecheck": "tsc -p tsconfig.json",

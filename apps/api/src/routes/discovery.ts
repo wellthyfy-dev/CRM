@@ -90,7 +90,10 @@ export function discoveryRoutes({ db, publisher, env, now }: RouteDeps): Router 
     res.json(run);
   });
 
-  /** "Add selected": create organisations (stage research_needed, source discovery), optionally queue AI research. */
+  /**
+   * "Add selected": create organisations (stage research_needed, source discovery), then by default queue the
+   * contact finder (website emails/phones → contacts → one email in Approvals) and optionally AI research.
+   */
   r.post('/discovery/:id/add', canEdit, async (req, res) => {
     const user = currentUser(req);
     const [run] = await db
@@ -150,6 +153,9 @@ export function discoveryRoutes({ db, publisher, env, now }: RouteDeps): Router 
         type: 'organisation_created',
         payload: { source: 'discovery', runId: run.id, query: c.query },
       });
+      if (body.findContacts) {
+        await publisher.send(QUEUES.discoveryContacts, { organisationId: org!.id, userId: user.id });
+      }
       if (body.queueResearch && aiApiKey(env)) {
         await publisher.send(QUEUES.aiResearch, { organisationId: org!.id, userId: user.id });
       }

@@ -12,4 +12,5 @@ export * from './replies/classify';
 export * from './ai/research';
 export * from './ai/prompt';
 export * from './discovery';
+export * from './contact-extract';
 export * from './reports';

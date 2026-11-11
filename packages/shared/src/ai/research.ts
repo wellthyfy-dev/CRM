@@ -33,7 +33,10 @@ export type AiReplyClassification = z.infer<typeof aiReplyClassificationSchema>;
 export interface FetchedPage {
   url: string;
   title?: string;
+  /** Clipped to keep the AI prompt small. */
   text: string;
+  /** The whole page's text, for contact extraction (addresses usually sit in the footer, past the clip). */
+  fullText?: string;
 }
 
 const squash = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase();

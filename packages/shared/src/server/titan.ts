@@ -7,10 +7,10 @@ import type { ServerEnv } from './env';
 
 // Titan Mail is the ONLY channel for prospect email (CLAUDE.md). Credentials come from env only and are never logged.
 
+// Hosts default to Titan; a Titan mailbox resold by GoDaddy ("Professional Email") logs in only through GoDaddy's
+// servers, so TITAN_SMTP_HOST / TITAN_IMAP_HOST can point there. Ports and implicit TLS are fixed.
 export const TITAN = {
-  smtpHost: 'smtp.titan.email',
   smtpPort: 465,
-  imapHost: 'imap.titan.email',
   imapPort: 993,
 } as const;
 
@@ -121,7 +121,7 @@ export function titanConfigured(env: Pick<ServerEnv, 'TITAN_USER' | 'TITAN_PASSW
 
 function imapClient(env: ServerEnv): ImapFlow {
   return new ImapFlow({
-    host: TITAN.imapHost,
+    host: env.TITAN_IMAP_HOST,
     port: TITAN.imapPort,
     secure: true,
     auth: { user: env.TITAN_USER ?? '', pass: env.TITAN_PASSWORD ?? '' },
@@ -159,7 +159,7 @@ function assertNotInbox(path: string) {
 
 function smtpTransport(env: ServerEnv) {
   return nodemailer.createTransport({
-    host: TITAN.smtpHost,
+    host: env.TITAN_SMTP_HOST,
     port: TITAN.smtpPort,
     secure: true,
     auth: { user: env.TITAN_USER ?? '', pass: env.TITAN_PASSWORD ?? '' },

@@ -284,7 +284,8 @@ Run in **dry_run** first, then repeat the email items in **live** to an internal
 
 **DNS checks for `wellthyfy.in`**
 - **MX** records point to Titan.
-- **SPF**: one TXT record that includes Titan (e.g. `v=spf1 include:spf.titan.email ~all`); send Resend alerts from a
+- **SPF**: one TXT record that includes the mail provider — for GoDaddy Professional Email typically
+  `v=spf1 include:secureserver.net ~all` (check the record GoDaddy DNS shows), for direct Titan `include:spf.titan.email`; send Resend alerts from a
   subdomain so its SPF stays separate.
 - **DKIM**: enable DKIM in the Titan admin panel and publish the TXT record it shows; publish Resend's DKIM records
   for the alert domain or subdomain.
@@ -317,3 +318,29 @@ Run in **dry_run** first, then repeat the email items in **live** to an internal
   high). Unknown models are costed at the most expensive known rate.
 - After login the app returns to `?from=` (same-origin paths only) instead of router state.
 - Vitest stays the unit-test runner (it uses Vite internally; the app itself no longer does).
+- api/worker `dev` scripts pass `--use-system-ca` so Titan IMAP/SMTP work on Windows PCs whose antivirus (e.g. Avast
+  Web Guard) re-signs TLS with its own root; certificates are still verified. Production start commands are unchanged.
+- The outreach mailbox is GoDaddy Professional Email (powered by Titan): it authenticates only on GoDaddy's servers, so
+  the IMAP/SMTP hosts are configurable (`TITAN_IMAP_HOST` / `TITAN_SMTP_HOST`, default Titan).
+
+## Step 6 — Discovery finds contacts and creates emails
+
+### What was built
+- **Discovery "Add" → contact finder** (worker job `discovery-contacts`, on by default via "Find contacts & create
+  emails"): fetches the official website (home + up to 6 relevant pages, contact pages ranked first), extracts email
+  addresses and Indian phone numbers that literally appear in the page text (`packages/shared/src/contact-extract.ts`,
+  no AI), saves them as contacts with the exact page as `source_url`, and creates one email from the segment
+  template to the best contact as **pending approval**. Phone-only sites get a phone contact; extra numbers go to the
+  organisation notes. Opted-out addresses stay opted out and are not emailed.
+- Crawler: decodes Cloudflare email protection, keeps `tel:` links, and keeps each page's full text for extraction
+  (the AI prompt still gets the clipped text). Checked against two real college sites (MVIT, KCT).
+
+### Decisions / defaults (Step 6)
+- **Auto-verified contacts** (user decision): addresses from the organisation's own website are saved `verified` with
+  `verified_by` = the user who clicked Add and the page URL as proof. The send gate is unchanged; every email still
+  needs an admin approval.
+- **One email per organisation**: college → Principal › Placement/Training › Director › Dean › office; company → HR ›
+  L&D › Director › office; official-domain addresses outrank free-mail.
+- **Only official-domain addresses are saved when any exist**; otherwise (e.g. government colleges on Gmail) up to 5.
+- **ZeroBounce optional** (user decision): disabled by leaving `ZEROBOUNCE_API_KEY` empty; the gate then blocks only
+  addresses already marked invalid.

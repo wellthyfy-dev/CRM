@@ -25,6 +25,10 @@ envVarGroups:
         sync: false
       - key: TITAN_PASSWORD
         sync: false
+      - key: TITAN_SMTP_HOST
+        value: smtpout.secureserver.net
+      - key: TITAN_IMAP_HOST
+        value: imap.secureserver.net
       - key: TITAN_FROM_NAME
         value: Selvaganapathy V. | Wellthyfy Lifestyle Ventures
       - key: RESEND_API_KEY

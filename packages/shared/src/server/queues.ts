@@ -10,6 +10,7 @@ export const QUEUES = {
   digest: 'daily-digest',
   replyAlert: 'reply-alert',
   discovery: 'discovery',
+  discoveryContacts: 'discovery-contacts',
   backup: 'nightly-backup',
 } as const;
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];

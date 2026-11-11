@@ -284,6 +284,8 @@ export const discoveryCreateSchema = z.object({
 export const discoveryAddSchema = z.object({
   domains: z.array(z.string().min(3).max(300)).min(1).max(100),
   queueResearch: z.boolean().default(false),
+  /** Read each website for email addresses / phone numbers, save them and put one email into Approvals. */
+  findContacts: z.boolean().default(true),
 });
 
 // ---- Proposals -------------------------------------------------------------

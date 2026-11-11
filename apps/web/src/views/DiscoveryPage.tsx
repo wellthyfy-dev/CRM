@@ -51,6 +51,7 @@ export function DiscoveryPage() {
   const [runId, setRunId] = React.useState<string | null>(null);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [queueResearch, setQueueResearch] = React.useState(false);
+  const [findContacts, setFindContacts] = React.useState(true);
   const runs = useQuery({
     queryKey: ['discovery'],
     queryFn: () =>
@@ -82,7 +83,7 @@ export function DiscoveryPage() {
       api<{ created: { id: string; name: string }[]; skipped: { domain: string; reason: string }[] }>(
         `/api/discovery/${runId}/add`,
         {
-          body: { domains: [...selected], queueResearch },
+          body: { domains: [...selected], queueResearch, findContacts },
         },
       ),
     onSuccess: (r) => {
@@ -90,7 +91,10 @@ export function DiscoveryPage() {
       void qc.invalidateQueries({ queryKey: ['organisations'] });
       setSelected(new Set());
       toast(
-        `Added ${r.created.length} organisations${r.skipped.length ? `, skipped ${r.skipped.length}` : ''}`,
+        `Added ${r.created.length} organisations${r.skipped.length ? `, skipped ${r.skipped.length}` : ''}` +
+          (findContacts && r.created.length
+            ? ' — finding contacts; emails will appear in Approvals in a minute or two'
+            : ''),
       );
     },
   });
@@ -212,6 +216,17 @@ export function DiscoveryPage() {
                 <Button disabled={selected.size === 0 || add.isPending} onClick={() => add.mutate()}>
                   Add selected ({selected.size})
                 </Button>
+                <label
+                  className="flex items-center gap-2 text-sm"
+                  title="Reads each official website for email addresses and phone numbers, saves them as contacts and puts one email to the best contact into Approvals."
+                >
+                  <input
+                    type="checkbox"
+                    checked={findContacts}
+                    onChange={(e) => setFindContacts(e.target.checked)}
+                  />
+                  Find contacts &amp; create emails
+                </label>
                 <label className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"

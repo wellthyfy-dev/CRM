@@ -1,7 +1,10 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+// The Vercel ↔ Supabase integration names the browser key NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY; accept either.
+// (Each must be a literal process.env.X reference so Next.js inlines it at build time.)
+const anonKey =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim();
 
 // A malformed value (e.g. a literal "${SUPABASE_URL}" pasted into Vercel) must not crash the build/prerender;
 // the login page shows "Supabase is not configured" instead.
