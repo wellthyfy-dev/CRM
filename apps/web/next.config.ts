@@ -12,6 +12,16 @@ const publicEnv = Object.fromEntries(
     (e): e is [string, string] => e[0].startsWith('NEXT_PUBLIC_') && typeof e[1] === 'string',
   ),
 );
+// The Vercel ↔ Supabase integration may only provide the non-public names; fall back to them.
+// Both are browser-safe (project URL and publishable/anon key) — never fall back to a secret key here.
+const isHttpUrl = (v?: string) => !!v && /^https?:\/\/[^\s"'$]+$/.test(v.trim());
+if (!isHttpUrl(publicEnv.NEXT_PUBLIC_SUPABASE_URL) && isHttpUrl(combinedEnv.SUPABASE_URL)) {
+  publicEnv.NEXT_PUBLIC_SUPABASE_URL = combinedEnv.SUPABASE_URL!.trim();
+}
+if (!publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY && !publicEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
+  const key = combinedEnv.SUPABASE_PUBLISHABLE_KEY || combinedEnv.SUPABASE_ANON_KEY;
+  if (key) publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY = key;
+}
 
 const securityHeaders = [
   { key: 'X-Frame-Options', value: 'DENY' },
